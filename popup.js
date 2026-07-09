@@ -190,6 +190,14 @@ $('copy-agent').addEventListener('click', async () => {
   setTimeout(() => ($('copy-agent').textContent = t().agentCopy), 1800);
 });
 
+// 생성된 preview.html(추출 토큰 카탈로그)을 새 탭에서 바로 보기 — 추출 정확도 육안 확인.
+$('open-preview').addEventListener('click', () => {
+  const html = outputs['download-html'];
+  if (!html) return;
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  chrome.tabs.create({ url });
+});
+
 function downloadText(content, filename, mime) {
   const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
