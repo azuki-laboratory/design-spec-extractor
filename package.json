@@ -1,0 +1,22 @@
+{
+  "name": "azuki",
+  "version": "1.6.0",
+  "description": "현재 보고 있는 웹사이트의 디자인을 분석하여 **DESIGN.md** 문서를 자동 생성하는 크롬 확장 프로그램입니다.",
+  "main": "analyzer.js",
+  "scripts": {
+    "lint": "node scripts/check.js",
+    "test": "node test/e2e.js",
+    "build": "node scripts/build.js",
+    "test:release": "node test/release.js",
+    "verify": "npm run lint && npm test && npm run build && npm run test:release",
+    "publish": "node scripts/publish.js",
+    "icons": "node scripts/icons.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "chrome-webstore-upload-cli": "^4.0.1",
+    "playwright": "^1.61.1"
+  }
+}

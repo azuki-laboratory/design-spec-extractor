@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      /* Azuki 브랜드 디자인 시스템 (BRAND.md) — 잉크 블랙 + 크림 페이퍼 + 시그니처 블루 */
+      :root {
+        --azuki-ink: #14161c;
+        --azuki-ink-mute: #5b606e;
+        --azuki-cream: #f6f3ec;
+        --azuki-paper: #ffffff;
+        --azuki-hairline: #e3ddd0;
+        --azuki-blue: #2f6bff;
+        --azuki-blue-deep: #1e4fd0;
+        --azuki-blue-soft: #6fa8ff;
+        --azuki-on-blue: #ffffff;
+        --radius-control: 6px;
+        --radius-panel: 10px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100%;
+        min-width: 300px;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+          sans-serif;
+        background: var(--azuki-cream);
+        color: var(--azuki-ink);
+        padding: 16px;
+        overflow-x: hidden;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      #open-settings {
+        margin-left: auto;
+        align-self: flex-start;
+        flex-shrink: 0;
+        background: transparent;
+        color: var(--azuki-ink-mute);
+        font-size: 24px;
+        line-height: 1;
+        padding: 8px 10px;
+        border-radius: var(--radius-control);
+      }
+      #open-settings:hover {
+        background: var(--azuki-paper);
+        color: var(--azuki-ink);
+      }
+      .header img {
+        width: 46px;
+        height: 46px;
+        flex-shrink: 0;
+        border-radius: var(--radius-panel);
+        border: 1px solid var(--azuki-hairline);
+        background: var(--azuki-paper);
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 2px;
+        letter-spacing: -0.2px;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--azuki-ink-mute);
+        line-height: 1.4;
+      }
+      button {
+        font: inherit;
+        border: none;
+        border-radius: var(--radius-control);
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 700;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--azuki-blue-soft);
+        outline-offset: 1px;
+      }
+      #analyze {
+        flex: 2;
+        background: var(--azuki-blue);
+        color: var(--azuki-on-blue);
+        font-size: 14px;
+      }
+      #analyze:hover {
+        background: var(--azuki-blue-deep);
+      }
+      #analyze:disabled {
+        background: var(--azuki-hairline);
+        color: var(--azuki-ink-mute);
+        cursor: default;
+      }
+      #add {
+        flex: 1;
+        background: var(--azuki-paper);
+        color: var(--azuki-ink);
+        border: 1px solid var(--azuki-hairline);
+        font-size: 13px;
+      }
+      #add:hover {
+        background: var(--azuki-cream);
+        border-color: var(--azuki-blue);
+      }
+      .hint {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+        padding: 8px 10px;
+        background: rgba(47, 107, 255, 0.06);
+        border: 1px solid var(--azuki-hairline);
+        border-left: 3px solid var(--azuki-blue);
+        border-radius: var(--radius-control);
+        font-size: 11.5px;
+        line-height: 1.4;
+        color: var(--azuki-ink-mute);
+      }
+      .hint .hint-ic {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        background: var(--azuki-blue);
+        color: var(--azuki-on-blue);
+        font-weight: 700;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hint b {
+        color: var(--azuki-ink);
+        font-weight: 700;
+      }
+      #status {
+        font-size: 12px;
+        color: var(--azuki-ink-mute);
+        margin-top: 10px;
+        min-height: 16px;
+      }
+      #pages {
+        margin-bottom: 8px;
+        max-height: 48px;
+        overflow: auto;
+        border: 1px solid var(--azuki-hairline);
+        border-radius: var(--radius-control);
+        background: var(--azuki-paper);
+      }
+      #pages .page {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        font-size: 11px;
+        color: var(--azuki-ink);
+        border-bottom: 1px solid var(--azuki-hairline);
+      }
+      #pages .page:last-child {
+        border-bottom: none;
+      }
+      #pages .page .n {
+        flex-shrink: 0;
+        width: 15px;
+        height: 15px;
+        border-radius: 4px;
+        background: var(--azuki-blue);
+        color: var(--azuki-on-blue);
+        font-size: 9px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #pages .page .t {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #status.error {
+        color: #c0392b;
+      }
+      #mascot {
+        display: none;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--azuki-ink);
+        background: rgba(47, 107, 255, 0.06);
+        border-left: 3px solid var(--azuki-blue);
+        border-radius: var(--radius-control);
+        padding: 8px 10px;
+        margin-bottom: 8px;
+      }
+      #dna {
+        display: none;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 10px;
+      }
+      #dna span {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--azuki-blue-deep);
+        background: var(--azuki-paper);
+        border: 1px solid var(--azuki-hairline);
+        border-radius: 999px;
+        padding: 3px 8px;
+      }
+      #copy-agent {
+        color: var(--azuki-blue-deep);
+      }
+      #result {
+        display: none;
+        margin-top: 12px;
+      }
+      #preview {
+        width: 100%;
+        height: 168px;
+        background: var(--azuki-ink);
+        color: #e9e6dd;
+        border: 1px solid var(--azuki-ink);
+        border-radius: var(--radius-panel);
+        padding: 12px;
+        font-family: "SF Mono", Menlo, monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        white-space: pre;
+        overflow: auto;
+        resize: none;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .actions button {
+        flex: 1;
+        padding: 8px 12px;
+        background: var(--azuki-paper);
+        color: var(--azuki-ink);
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid var(--azuki-hairline);
+      }
+      .actions button:hover {
+        border-color: var(--azuki-blue);
+        color: var(--azuki-blue-deep);
+      }
+      #copy {
+        color: var(--azuki-blue-deep);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img src="icons/icon128.png" alt="Azuki" />
+      <div>
+        <h1>Azuki — Design Spec Extractor</h1>
+        <div class="sub" data-i18n="sub">
+          아즈키가 이 페이지의 디자인을 분석해 DESIGN.md를 만들어줘요.
+        </div>
+      </div>
+      <button id="open-settings" data-i18n-title="settings" title="설정" aria-label="설정">⚙</button>
+    </div>
+    <div class="actions" style="margin-top: 0">
+      <button id="analyze" data-i18n="analyze">이 페이지 분석하기</button>
+      <button id="add" data-i18n="add" style="display: none">＋ 페이지 추가</button>
+    </div>
+    <div class="hint">
+      <span class="hint-ic">＋</span>
+      <span data-i18n-html="hint"
+        >여러 페이지를 한 스펙으로 <b>병합</b>: 패널을 연 채 다른 페이지로 이동해
+        <b>＋ 페이지 추가</b>를 누르세요. 패널은 닫히지 않아요.</span
+      >
+    </div>
+    <div id="status"></div>
+    <div id="result">
+      <div id="pages"></div>
+      <div id="mascot"></div>
+      <div id="dna"></div>
+      <div id="preview"></div>
+      <div class="actions">
+        <button id="copy" data-i18n="copy">📋 복사</button>
+        <button id="download">⬇️ DESIGN.md</button>
+      </div>
+      <div class="actions">
+        <button id="copy-agent" data-i18n="agentCopy">🤖 에이전트 프롬프트</button>
+      </div>
+      <div class="actions">
+        <button id="download-css">🎨 tokens.css</button>
+        <button id="download-json">🧩 tokens.json</button>
+        <button id="download-tw">🌬 tailwind</button>
+      </div>
+      <div class="actions">
+        <button id="download-html">🖼 preview.html</button>
+        <button id="download-shot">📸 screenshot.png</button>
+      </div>
+    </div>
+    <script src="analyzer.js"></script>
+    <script src="generator.js"></script>
+    <script src="i18n.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

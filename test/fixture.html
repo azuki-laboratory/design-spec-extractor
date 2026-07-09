@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fixture — Design Test Page</title>
+  <style>
+    /* 알려진 값으로 구성된 테스트용 디자인 시스템.
+       e2e.js의 assert 값과 1:1 대응하므로 수정 시 함께 갱신할 것. */
+    @font-face {
+      font-family: "Fixture Sans";
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+      src: url("https://example.com/fixture-sans.woff2") format("woff2");
+    }
+    :root {
+      --color-primary: #e11d48;
+      --spacing-unit: 8px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-primary: #fb7185;
+        --color-bg: #0b0b10;
+      }
+    }
+    .hero {
+      background: linear-gradient(90deg, #e11d48, #0ea5e9);
+      height: 48px; border-radius: 10px; margin-bottom: 24px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #fafafa;
+      color: #111827;
+      font-family: Georgia, serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 40px; font-weight: 700; margin-bottom: 16px; }
+    h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 16px; color: #374151; }
+    .muted { color: #6b7280; }
+    a { color: #0ea5e9; }
+    .btn-primary {
+      background: #e11d48; color: #ffffff; border: none;
+      border-radius: 10px; padding: 12px 24px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #be123c; }
+    .btn-secondary {
+      background: #ffffff; color: #111827; border: 1px solid #d1d5db;
+      border-radius: 10px; padding: 12px 24px; font-size: 15px;
+    }
+    /* 투명 배경 outline 버튼 — rgbStrToHex 알파 가드 회귀 테스트용.
+       버그가 있으면 rgba(0,0,0,0)이 #000000으로 오인돼 primary가 검정이 됨. */
+    .btn-ghost {
+      background: rgba(0,0,0,0); color: #e11d48; border: 1px solid #e11d48;
+      border-radius: 10px; padding: 12px 24px; font-size: 15px;
+    }
+    .card {
+      background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px;
+      padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+    input[type="text"] {
+      background: #ffffff; color: #111827; border: 1px solid #d1d5db;
+      border-radius: 6px; padding: 8px 12px; font-size: 14px; width: 240px;
+    }
+    input[type="text"]:focus { outline: none; border-color: #e11d48; }
+    .row { display: flex; gap: 16px; margin-bottom: 24px; }
+    header {
+      position: sticky; top: 0; height: 56px;
+      background: #ffffff; border-bottom: 1px solid #e5e7eb;
+      display: flex; align-items: center; padding: 0 24px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 480px) { .container { padding: 16px 8px; } }
+  </style>
+</head>
+<body>
+  <header><strong>Fixture Nav</strong></header>
+  <div class="container">
+    <div class="hero"></div>
+    <h1>디자인 픽스처 페이지</h1>
+    <p>이 페이지는 Design Spec Extractor의 E2E 테스트 대상입니다. <a href="#">링크 예시</a></p>
+    <div class="row">
+      <button class="btn-primary">주요 액션</button>
+      <button class="btn-secondary">보조 액션</button>
+      <button class="btn-ghost">고스트</button>
+      <input type="text" placeholder="검색어 입력" />
+    </div>
+    <div class="grid">
+      <div class="card"><h2>카드 A</h2><p class="muted">보조 텍스트 캡션.</p></div>
+      <div class="card"><h2>카드 B</h2><p class="muted">보조 텍스트 캡션.</p></div>
+      <div class="card"><h2>카드 C</h2><p class="muted">보조 텍스트 캡션.</p></div>
+    </div>
+  </div>
+</body>
+</html>

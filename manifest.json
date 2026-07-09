@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Azuki — Design Spec Extractor",
+  "description": "Azuki가 현재 사이트의 디자인을 분석하여 DESIGN.md 문서를 생성합니다.",
+  "version": "1.6.0",
+  "permissions": ["activeTab", "tabs", "scripting", "downloads", "sidePanel", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Azuki — 사이드패널 열기 / 이 페이지 추가"
+  },
+  "side_panel": { "default_path": "popup.html" },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

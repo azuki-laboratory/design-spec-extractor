@@ -1,0 +1,440 @@
+// analyzer.js
+// 페이지에 주입되어 실행되는 자기완결(self-contained) 분석 함수.
+// popup.js에서 chrome.scripting.executeScript({ func: analyzePage, args: [opts] })로
+// 직렬화되어 대상 페이지 컨텍스트에서 실행되므로, 외부 스코프를 참조하면 안 된다.
+// opts: 설정 페이지(options)에서 온 사용자 옵션. 인자 없이 호출되면 기본값 사용.
+
+function analyzePage(opts) {
+  opts = opts || {};
+  const MAX_ELEMENTS = opts.maxElements > 0 ? opts.maxElements : 4000;
+
+  /* ---------- 색상 유틸 ---------- */
+  function parseColor(str) {
+    if (!str) return null;
+    const m = str.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/);
+    if (!m) return null;
+    let a = m[4] === undefined ? 1 : parseFloat(m[4]);
+    if (typeof m[4] === 'string' && m[4].includes('%')) a = a / 100;
+    return { r: +m[1], g: +m[2], b: +m[3], a };
+  }
+  function toHex(c) {
+    const h = (n) => Math.round(n).toString(16).padStart(2, '0');
+    return '#' + h(c.r) + h(c.g) + h(c.b);
+  }
+  function luminance(c) {
+    const f = (v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  }
+  function saturation(c) {
+    const max = Math.max(c.r, c.g, c.b) / 255;
+    const min = Math.min(c.r, c.g, c.b) / 255;
+    const l = (max + min) / 2;
+    if (max === min) return 0;
+    const d = max - min;
+    return l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  }
+  function contrastRatio(c1, c2) {
+    const l1 = luminance(c1), l2 = luminance(c2);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+  function isTransparent(c) {
+    return !c || c.a < 0.05;
+  }
+  function isNeutral(c) {
+    return saturation(c) < 0.12;
+  }
+
+  /* ---------- 집계 헬퍼 ---------- */
+  function tally(map, key, weight = 1) {
+    if (key === null || key === undefined || key === '') return;
+    map.set(key, (map.get(key) || 0) + weight);
+  }
+  function topEntries(map, n = 10) {
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  }
+  function visible(el) {
+    const r = el.getBoundingClientRect();
+    return r.width > 2 && r.height > 2;
+  }
+  function area(el) {
+    const r = el.getBoundingClientRect();
+    return Math.min(r.width * r.height, window.innerWidth * window.innerHeight);
+  }
+
+  /* ---------- 수집 컨테이너 ---------- */
+  const bgColors = new Map();      // hex -> 면적 가중치
+  const textColors = new Map();    // hex -> 텍스트 요소 수
+  const borderColors = new Map();
+  const linkColors = new Map();
+  const fontFamilies = new Map();
+  const fontSizes = new Map();     // px -> count
+  const fontWeights = new Map();
+  const headingStyles = {};        // h1..h6 -> {size, weight, lineHeight, family}
+  const bodyStyle = {};
+  const radii = new Map();
+  const shadows = new Map();
+  const spacings = new Map();      // margin/padding px 값 -> count
+  const gaps = new Map();
+  const zIndices = new Map();
+  let gridCount = 0, flexCount = 0, totalContainers = 0;
+  const containerWidths = new Map();
+  const transitions = new Map();
+  const gradients = new Map();
+
+  const all = document.querySelectorAll('body, body *');
+  const limit = Math.min(all.length, MAX_ELEMENTS);
+
+  for (let i = 0; i < limit; i++) {
+    const el = all[i];
+    if (!visible(el)) continue;
+    const cs = getComputedStyle(el);
+
+    // 배경색 (면적 가중)
+    const bg = parseColor(cs.backgroundColor);
+    if (!isTransparent(bg)) tally(bgColors, toHex(bg), Math.sqrt(area(el)));
+
+    // 텍스트 색
+    const hasText = [...el.childNodes].some(
+      (n) => n.nodeType === 3 && n.textContent.trim().length > 0
+    );
+    if (hasText) {
+      const fg = parseColor(cs.color);
+      if (!isTransparent(fg)) tally(textColors, toHex(fg));
+      tally(fontFamilies, cs.fontFamily.split(',')[0].replace(/["']/g, '').trim());
+      tally(fontSizes, Math.round(parseFloat(cs.fontSize)));
+      tally(fontWeights, cs.fontWeight);
+      if (el.tagName === 'A') {
+        const lc = parseColor(cs.color);
+        if (!isTransparent(lc)) tally(linkColors, toHex(lc));
+      }
+    }
+
+    // 테두리
+    if (parseFloat(cs.borderTopWidth) > 0) {
+      const bc = parseColor(cs.borderTopColor);
+      if (!isTransparent(bc)) tally(borderColors, toHex(bc));
+    }
+
+    // 모서리 반경
+    const rad = parseFloat(cs.borderTopLeftRadius);
+    if (rad > 0) tally(radii, Math.round(rad));
+
+    // 그림자
+    if (cs.boxShadow && cs.boxShadow !== 'none') tally(shadows, cs.boxShadow);
+
+    // 여백 스케일
+    ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight',
+     'marginTop', 'marginBottom'].forEach((p) => {
+      const v = Math.round(parseFloat(cs[p]));
+      if (v > 0 && v < 200) tally(spacings, v);
+    });
+
+    // 레이아웃
+    if (cs.display === 'grid' || cs.display === 'inline-grid') { gridCount++; totalContainers++; }
+    else if (cs.display === 'flex' || cs.display === 'inline-flex') { flexCount++; totalContainers++; }
+    if (cs.display.includes('grid') || cs.display.includes('flex')) {
+      const g = Math.round(parseFloat(cs.gap || cs.columnGap) || 0);
+      if (g > 0) tally(gaps, g);
+    }
+
+    // 최대폭 컨테이너 (중앙 정렬 래퍼 추정)
+    const mw = parseFloat(cs.maxWidth);
+    if (mw > 400 && mw < 2000 && (cs.marginLeft === 'auto' || cs.marginRight === 'auto' ||
+        Math.abs(el.getBoundingClientRect().left - (window.innerWidth - el.getBoundingClientRect().width) / 2) < 40)) {
+      tally(containerWidths, Math.round(mw));
+    }
+
+    // 그라디언트 배경
+    if (cs.backgroundImage && cs.backgroundImage.includes('gradient')) {
+      tally(gradients, cs.backgroundImage.slice(0, 220));
+    }
+
+    // z-index / 전환
+    if (cs.zIndex !== 'auto' && +cs.zIndex > 0) tally(zIndices, +cs.zIndex);
+    if (cs.transitionDuration && cs.transitionDuration !== '0s') {
+      tally(transitions, cs.transitionDuration.split(',')[0].trim());
+    }
+  }
+
+  /* ---------- 제목/본문 타이포 ---------- */
+  ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach((tag) => {
+    const el = document.querySelector(tag);
+    if (el && visible(el)) {
+      const cs = getComputedStyle(el);
+      headingStyles[tag] = {
+        size: Math.round(parseFloat(cs.fontSize)),
+        weight: cs.fontWeight,
+        lineHeight: cs.lineHeight === 'normal' ? 'normal' : (parseFloat(cs.lineHeight) / parseFloat(cs.fontSize)).toFixed(2),
+        family: cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(),
+        letterSpacing: cs.letterSpacing,
+      };
+    }
+  });
+  {
+    const p = document.querySelector('main p, article p, p') || document.body;
+    const cs = getComputedStyle(p);
+    bodyStyle.size = Math.round(parseFloat(cs.fontSize));
+    bodyStyle.weight = cs.fontWeight;
+    bodyStyle.lineHeight = cs.lineHeight === 'normal' ? 'normal' : (parseFloat(cs.lineHeight) / parseFloat(cs.fontSize)).toFixed(2);
+    bodyStyle.family = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
+    bodyStyle.letterSpacing = cs.letterSpacing;
+  }
+
+  /* ---------- 컴포넌트 샘플링 ---------- */
+  function styleSnapshot(el) {
+    const cs = getComputedStyle(el);
+    return {
+      background: cs.backgroundColor,
+      color: cs.color,
+      border: cs.borderTopWidth !== '0px' ? `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}` : 'none',
+      borderRadius: cs.borderTopLeftRadius,
+      padding: `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`,
+      fontSize: cs.fontSize,
+      fontWeight: cs.fontWeight,
+      boxShadow: cs.boxShadow,
+      transition: cs.transitionDuration !== '0s' ? `${cs.transitionProperty.split(',')[0]} ${cs.transitionDuration.split(',')[0]}` : 'none',
+      textTransform: cs.textTransform,
+    };
+  }
+
+  // 버튼: 스타일 시그니처별로 클러스터링해서 상위 2종(primary/secondary 추정)
+  const buttonEls = [...document.querySelectorAll(
+    'button, [role="button"], input[type="submit"], input[type="button"], a[class*="btn" i], a[class*="button" i]'
+  )].filter(visible).slice(0, 200);
+  const btnClusters = new Map();
+  buttonEls.forEach((el) => {
+    const s = styleSnapshot(el);
+    const key = `${s.background}|${s.color}|${s.borderRadius}|${s.border}`;
+    if (!btnClusters.has(key)) {
+      btnClusters.set(key, {
+        style: s, count: 0,
+        sample: (el.textContent || el.value || '').trim().slice(0, 30),
+        height: Math.round(el.getBoundingClientRect().height),
+      });
+    }
+    btnClusters.get(key).count++;
+  });
+  const buttonVariants = [...btnClusters.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+  // 유채색 배경 버튼을 primary로 우선
+  buttonVariants.sort((a, b) => {
+    const sa = parseColor(a.style.background), sb = parseColor(b.style.background);
+    const score = (c) => (c && !isTransparent(c) ? saturation(c) : -1);
+    return score(sb) - score(sa);
+  });
+
+  // 입력창
+  const inputEl = [...document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea, select')]
+    .filter(visible)[0];
+  const inputStyle = inputEl ? styleSnapshot(inputEl) : null;
+
+  // 내비게이션 (헤더 바)
+  const navEl = [...document.querySelectorAll('header, nav, [role="banner"]')].filter(visible)[0];
+  const navStyle = navEl ? Object.assign(styleSnapshot(navEl), {
+    height: Math.round(navEl.getBoundingClientRect().height),
+    position: getComputedStyle(navEl).position,
+  }) : null;
+
+  // 링크 밑줄 관례
+  const linkSample = [...document.querySelectorAll('a')].filter(visible).slice(0, 30);
+  const underlined = linkSample.filter((a) => getComputedStyle(a).textDecorationLine.includes('underline')).length;
+  const linkUnderline = linkSample.length ? (underlined / linkSample.length > 0.5 ? 'underline' : 'none') : null;
+
+  // 카드: 반경 + (그림자 또는 테두리) + 패딩 + 복수 자식
+  const cardEl = [...document.querySelectorAll('div, section, article, li')]
+    .filter(visible)
+    .filter((el) => {
+      const cs = getComputedStyle(el);
+      const hasRad = parseFloat(cs.borderTopLeftRadius) >= 4;
+      const hasEdge = (cs.boxShadow && cs.boxShadow !== 'none') || parseFloat(cs.borderTopWidth) > 0;
+      const hasPad = parseFloat(cs.paddingTop) >= 8;
+      const bg = parseColor(cs.backgroundColor);
+      return hasRad && hasEdge && hasPad && !isTransparent(bg) && el.children.length >= 2;
+    })
+    .slice(0, 50)
+    .sort((a, b) => area(b) - area(a))[0];
+  const cardStyle = cardEl ? styleSnapshot(cardEl) : null;
+
+  /* ---------- 스타일시트 단일 패스 ----------
+     document.styleSheets를 한 번만 순회하며 규칙마다 아래 수집기로 분배한다:
+       - 브레이크포인트 (미디어쿼리 min/max-width)
+       - :hover / :focus 정적 규칙
+       - :root/html CSS 커스텀 프로퍼티 (디자인 토큰)
+       - prefers-color-scheme: dark 내부의 :root 변수 재정의 (다크 팔레트)
+       - @font-face 웹폰트
+     교차 출처 스타일시트는 cssRules 접근이 막히므로 sheet 단위 try로 건너뛴다. */
+  const breakpoints = new Map();
+  const hoverRules = [];
+  const focusRules = [];
+  const cssVars = [];
+  const darkVars = [];
+  const fontFaces = [];
+  const rootStyle = getComputedStyle(document.documentElement);
+
+  const collectStyleRule = (rule) => {
+    // :root/html 변수
+    if (rule.selectorText === ':root' || rule.selectorText === 'html') {
+      for (const prop of rule.style) {
+        if (prop.startsWith('--') && cssVars.length < 60) {
+          cssVars.push({ name: prop, value: rootStyle.getPropertyValue(prop).trim() });
+        }
+      }
+    }
+    // hover / focus
+    if (rule.selectorText) {
+      if (hoverRules.length < 20 && rule.selectorText.includes(':hover') &&
+          /btn|button|link|nav|card|a\b|a:/i.test(rule.selectorText)) {
+        hoverRules.push({ selector: rule.selectorText.slice(0, 80), css: rule.style.cssText.slice(0, 160) });
+      }
+      if (focusRules.length < 10 && /:focus/.test(rule.selectorText) &&
+          /input|btn|button|field|textarea|select/i.test(rule.selectorText)) {
+        focusRules.push({ selector: rule.selectorText.slice(0, 80), css: rule.style.cssText.slice(0, 160) });
+      }
+    }
+  };
+
+  const collectMediaRule = (rule) => {
+    const mt = rule.media.mediaText;
+    // 브레이크포인트
+    const ms = mt.match(/(?:max|min)-width:\s*([\d.]+)(px|em|rem)/g) || [];
+    ms.forEach((m) => {
+      const v = m.match(/([\d.]+)(px|em|rem)/);
+      let px = parseFloat(v[1]);
+      if (v[2] !== 'px') px = px * 16;
+      tally(breakpoints, Math.round(px));
+    });
+    // 다크 팔레트 (prefers-color-scheme: dark 내부 :root/html/body 변수)
+    if (mt.includes('prefers-color-scheme') && mt.includes('dark') && rule.cssRules) {
+      for (const inner of rule.cssRules) {
+        if (inner.selectorText === ':root' || inner.selectorText === 'html' || inner.selectorText === 'body') {
+          for (const prop of inner.style) {
+            if (darkVars.length >= 60) break;
+            darkVars.push({ name: prop, value: inner.style.getPropertyValue(prop).trim() });
+          }
+        }
+      }
+    }
+  };
+
+  const collectFontFace = (rule) => {
+    const st = rule.style;
+    if (!st) return;
+    const family = (st.getPropertyValue('font-family') || '').replace(/["']/g, '').trim();
+    if (!family || fontFaces.length >= 30) return;
+    const srcRaw = st.getPropertyValue('src') || '';
+    const url = (srcRaw.match(/url\(([^)]+)\)/) || [])[1]?.replace(/["']/g, '').trim() || '';
+    const fmt = (srcRaw.match(/format\(([^)]+)\)/) || [])[1]?.replace(/["']/g, '').trim() || '';
+    fontFaces.push({
+      family,
+      weight: (st.getPropertyValue('font-weight') || 'normal').trim(),
+      style: (st.getPropertyValue('font-style') || 'normal').trim(),
+      display: (st.getPropertyValue('font-display') || '').trim(),
+      format: fmt,
+      url: url.slice(0, 200),
+    });
+  };
+
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try { rules = sheet.cssRules; } catch (e) { continue; } // 교차 출처 CSS는 접근 불가
+    if (!rules) continue;
+    for (const rule of rules) {
+      try {
+        if (rule.media && rule.media.mediaText) collectMediaRule(rule);
+        else if (rule.constructor.name === 'CSSFontFaceRule' || rule.type === 5) collectFontFace(rule);
+        else if (rule.selectorText) collectStyleRule(rule);
+      } catch (e) { /* 개별 규칙 파싱 실패 무시 */ }
+    }
+  }
+
+  /* ---------- hover 시뮬레이션 (JS 구동 스타일 한정) ----------
+     CSS :hover 의사클래스는 JS 이벤트로 발동되지 않으므로, 여기서 잡히는 것은
+     mouseover 리스너로 스타일을 바꾸는 CSS-in-JS/JS 구동 사이트뿐이다.
+     스타일시트 기반 :hover는 위의 hoverRules(정적 파싱)가 담당한다. */
+  const jsHoverDiffs = [];
+  try {
+    const targets = buttonEls.slice(0, 5);
+    for (const el of targets) {
+      const before = styleSnapshot(el);
+      el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      const after = styleSnapshot(el);
+      el.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+      el.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      const diff = {};
+      for (const k of Object.keys(before)) {
+        if (before[k] !== after[k]) diff[k] = { from: before[k], to: after[k] };
+      }
+      if (Object.keys(diff).length) {
+        jsHoverDiffs.push({ sample: (el.textContent || '').trim().slice(0, 30), diff });
+        if (jsHoverDiffs.length >= 3) break;
+      }
+    }
+  } catch (e) { /* 무시 */ }
+
+  /* ---------- 결과 조립 ---------- */
+  const pageBg = parseColor(getComputedStyle(document.body).backgroundColor);
+  const effectiveBg = !isTransparent(pageBg) ? pageBg :
+    parseColor(getComputedStyle(document.documentElement).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+
+  return {
+    meta: {
+      url: location.href,
+      title: document.title,
+      analyzedAt: new Date().toISOString(),
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      elementsScanned: limit,
+    },
+    theme: {
+      isDark: luminance(effectiveBg) < 0.3,
+      pageBackground: toHex(effectiveBg),
+    },
+    colors: {
+      backgrounds: topEntries(bgColors, 8).map(([hex, w]) => ({ hex, weight: Math.round(w) })),
+      texts: topEntries(textColors, 8).map(([hex, n]) => ({ hex, count: n })),
+      borders: topEntries(borderColors, 5).map(([hex, n]) => ({ hex, count: n })),
+      links: topEntries(linkColors, 3).map(([hex, n]) => ({ hex, count: n })),
+      gradients: topEntries(gradients, 4).map(([g, n]) => ({ gradient: g, count: n })),
+    },
+    typography: {
+      families: topEntries(fontFamilies, 5).map(([f, n]) => ({ family: f, count: n })),
+      sizes: topEntries(fontSizes, 12).map(([s, n]) => ({ px: s, count: n })).sort((a, b) => a.px - b.px),
+      weights: topEntries(fontWeights, 6).map(([w, n]) => ({ weight: w, count: n })),
+      headings: headingStyles,
+      body: bodyStyle,
+    },
+    components: {
+      buttons: buttonVariants,
+      input: inputStyle,
+      card: cardStyle,
+      nav: navStyle,
+      linkUnderline,
+      hoverRules,
+      focusRules,
+      jsHoverDiffs,
+    },
+    layout: {
+      spacingScale: topEntries(spacings, 14).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
+      gaps: topEntries(gaps, 8).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
+      gridCount, flexCount, totalContainers,
+      containerWidths: topEntries(containerWidths, 4).map(([v, n]) => ({ px: v, count: n })),
+    },
+    depth: {
+      shadows: topEntries(shadows, 6).map(([s, n]) => ({ shadow: s, count: n })),
+      radii: topEntries(radii, 8).map(([r, n]) => ({ px: r, count: n })).sort((a, b) => a.px - b.px),
+      zIndices: topEntries(zIndices, 8).map(([z, n]) => ({ z, count: n })).sort((a, b) => a.z - b.z),
+      transitions: topEntries(transitions, 4).map(([t, n]) => ({ duration: t, count: n })),
+    },
+    responsive: {
+      breakpoints: topEntries(breakpoints, 8).map(([px, n]) => ({ px, count: n })).sort((a, b) => a.px - b.px),
+    },
+    cssVars,
+    darkVars,
+    fontFaces,
+    _utils: null,
+  };
+}
