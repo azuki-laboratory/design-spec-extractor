@@ -114,31 +114,14 @@
         border-color: var(--azuki-blue);
       }
       .hint {
-        display: flex;
-        gap: 8px;
-        align-items: center;
         margin-top: 10px;
-        padding: 8px 10px;
-        background: rgba(47, 107, 255, 0.06);
+        padding: 9px 11px;
+        background: var(--azuki-paper);
         border: 1px solid var(--azuki-hairline);
-        border-left: 3px solid var(--azuki-blue);
         border-radius: var(--radius-control);
         font-size: 11.5px;
-        line-height: 1.4;
+        line-height: 1.5;
         color: var(--azuki-ink-mute);
-      }
-      .hint .hint-ic {
-        flex-shrink: 0;
-        width: 18px;
-        height: 18px;
-        border-radius: 5px;
-        background: var(--azuki-blue);
-        color: var(--azuki-on-blue);
-        font-weight: 700;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
       .hint b {
         color: var(--azuki-ink);
@@ -174,9 +157,9 @@
         flex-shrink: 0;
         width: 15px;
         height: 15px;
-        border-radius: 4px;
-        background: var(--azuki-blue);
-        color: var(--azuki-on-blue);
+        border-radius: 3px;
+        background: var(--azuki-ink);
+        color: var(--azuki-cream);
         font-size: 9px;
         font-weight: 700;
         display: flex;
@@ -196,10 +179,10 @@
         font-size: 12px;
         line-height: 1.45;
         color: var(--azuki-ink);
-        background: rgba(47, 107, 255, 0.06);
-        border-left: 3px solid var(--azuki-blue);
+        background: var(--azuki-paper);
+        border: 1px solid var(--azuki-hairline);
         border-radius: var(--radius-control);
-        padding: 8px 10px;
+        padding: 9px 11px;
         margin-bottom: 8px;
       }
       #dna {
@@ -211,14 +194,11 @@
       #dna span {
         font-size: 10.5px;
         font-weight: 600;
-        color: var(--azuki-blue-deep);
-        background: var(--azuki-paper);
+        color: var(--azuki-ink);
+        background: var(--azuki-cream);
         border: 1px solid var(--azuki-hairline);
-        border-radius: 999px;
-        padding: 3px 8px;
-      }
-      #copy-agent {
-        color: var(--azuki-blue-deep);
+        border-radius: 3px;
+        padding: 3px 7px;
       }
       #result {
         display: none;
@@ -257,9 +237,6 @@
         border-color: var(--azuki-blue);
         color: var(--azuki-blue-deep);
       }
-      #copy {
-        color: var(--azuki-blue-deep);
-      }
     </style>
   </head>
   <body>
@@ -277,12 +254,9 @@
       <button id="analyze" data-i18n="analyze">이 페이지 분석하기</button>
       <button id="add" data-i18n="add" style="display: none">＋ 페이지 추가</button>
     </div>
-    <div class="hint">
-      <span class="hint-ic">＋</span>
-      <span data-i18n-html="hint"
-        >여러 페이지를 한 스펙으로 <b>병합</b>: 패널을 연 채 다른 페이지로 이동해
-        <b>＋ 페이지 추가</b>를 누르세요. 패널은 닫히지 않아요.</span
-      >
+    <div class="hint" data-i18n-html="hint">
+      여러 페이지를 한 스펙으로 <b>병합</b>: 패널을 연 채 다른 페이지로 이동해
+      <b>페이지 추가</b>를 누르세요. 패널은 닫히지 않아요.
     </div>
     <div id="status"></div>
     <div id="result">
@@ -291,20 +265,23 @@
       <div id="dna"></div>
       <div id="preview"></div>
       <div class="actions">
-        <button id="copy" data-i18n="copy">📋 복사</button>
-        <button id="download">⬇️ DESIGN.md</button>
+        <button id="copy" data-i18n="copy">복사</button>
+        <button id="download">DESIGN.md</button>
       </div>
       <div class="actions">
-        <button id="copy-agent" data-i18n="agentCopy">🤖 에이전트 프롬프트</button>
+        <button id="copy-agent" data-i18n="agentCopy">에이전트 프롬프트</button>
       </div>
       <div class="actions">
-        <button id="download-css">🎨 tokens.css</button>
-        <button id="download-json">🧩 tokens.json</button>
-        <button id="download-tw">🌬 tailwind</button>
+        <button id="download-css">tokens.css</button>
+        <button id="download-json">tokens.json</button>
+        <button id="download-tw">tailwind</button>
       </div>
       <div class="actions">
-        <button id="download-html">🖼 preview.html</button>
-        <button id="download-shot">📸 screenshot.png</button>
+        <button id="download-html">preview.html</button>
+        <button id="download-shot">screenshot</button>
+      </div>
+      <div class="actions">
+        <button id="open-preview" data-i18n="openPreview">미리보기 열기</button>
       </div>
     </div>
     <script src="analyzer.js"></script>
