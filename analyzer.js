@@ -83,6 +83,10 @@ function analyzePage(opts) {
   const containerWidths = new Map();
   const transitions = new Map();
   const gradients = new Map();
+  const borderWidths = new Map(); // px -> count (테두리 두께 스케일)
+  const opacities = new Map();    // opacity(<1) -> count
+  const easings = new Map();      // transition-timing-function -> count
+  const animations = new Map();   // animation-name -> count
 
   const all = document.querySelectorAll('body, body *');
   const limit = Math.min(all.length, MAX_ELEMENTS);
@@ -112,11 +116,17 @@ function analyzePage(opts) {
       }
     }
 
-    // 테두리
-    if (parseFloat(cs.borderTopWidth) > 0) {
+    // 테두리 (색 + 두께)
+    const bw = parseFloat(cs.borderTopWidth);
+    if (bw > 0 && cs.borderTopStyle !== 'none') {
       const bc = parseColor(cs.borderTopColor);
       if (!isTransparent(bc)) tally(borderColors, toHex(bc));
+      if (bw <= 12) tally(borderWidths, Math.round(bw));
     }
+
+    // 불투명도 스케일
+    const op = parseFloat(cs.opacity);
+    if (op > 0 && op < 1) tally(opacities, op.toFixed(2));
 
     // 모서리 반경
     const rad = parseFloat(cs.borderTopLeftRadius);
@@ -156,8 +166,41 @@ function analyzePage(opts) {
     if (cs.zIndex !== 'auto' && +cs.zIndex > 0) tally(zIndices, +cs.zIndex);
     if (cs.transitionDuration && cs.transitionDuration !== '0s') {
       tally(transitions, cs.transitionDuration.split(',')[0].trim());
+      if (cs.transitionTimingFunction) tally(easings, cs.transitionTimingFunction.split(',')[0].trim());
+    }
+    // 애니메이션
+    if (cs.animationName && cs.animationName !== 'none') {
+      cs.animationName.split(',').forEach((a) => { const n = a.trim(); if (n && n !== 'none') tally(animations, n); });
     }
   }
+
+  /* ---------- 아이콘 감사 (인라인 SVG 규모·크기) ---------- */
+  const svgs = [...document.querySelectorAll('svg')].filter(visible);
+  const iconSizes = new Map();
+  svgs.slice(0, 300).forEach((s) => {
+    const r = s.getBoundingClientRect();
+    const side = Math.round(Math.max(r.width, r.height));
+    if (side >= 8 && side <= 96) tally(iconSizes, side);
+  });
+  const icons = {
+    svgCount: svgs.length,
+    commonSizes: topEntries(iconSizes, 4).map(([px, n]) => ({ px, count: n })).sort((a, b) => a.px - b.px),
+  };
+
+  /* ---------- 접근성 스냅샷 ---------- */
+  const headingOrder = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].slice(0, 40).map((h) => h.tagName.toLowerCase());
+  const imgs = [...document.querySelectorAll('img')];
+  const imgWithAlt = imgs.filter((im) => (im.getAttribute('alt') || '').trim().length > 0 || im.getAttribute('alt') === '').length;
+  const landmarkSel = { header: 'header,[role=banner]', nav: 'nav,[role=navigation]', main: 'main,[role=main]', footer: 'footer,[role=contentinfo]', aside: 'aside,[role=complementary]' };
+  const landmarks = Object.keys(landmarkSel).filter((k) => document.querySelector(landmarkSel[k]));
+  const a11y = {
+    headingOrder,
+    h1Count: headingOrder.filter((t) => t === 'h1').length,
+    imgTotal: imgs.length,
+    imgAltCoverage: imgs.length ? Math.round((imgWithAlt / imgs.length) * 100) : null,
+    landmarks,
+    langSet: !!(document.documentElement.getAttribute('lang') || '').trim(),
+  };
 
   /* ---------- 제목/본문 타이포 ---------- */
   ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach((tag) => {
@@ -428,10 +471,19 @@ function analyzePage(opts) {
       radii: topEntries(radii, 8).map(([r, n]) => ({ px: r, count: n })).sort((a, b) => a.px - b.px),
       zIndices: topEntries(zIndices, 8).map(([z, n]) => ({ z, count: n })).sort((a, b) => a.z - b.z),
       transitions: topEntries(transitions, 4).map(([t, n]) => ({ duration: t, count: n })),
+      borderWidths: topEntries(borderWidths, 5).map(([px, n]) => ({ px, count: n })).sort((a, b) => a.px - b.px),
+      opacities: topEntries(opacities, 6).map(([v, n]) => ({ value: v, count: n })).sort((a, b) => a.value - b.value),
+    },
+    motion: {
+      durations: topEntries(transitions, 4).map(([t, n]) => ({ duration: t, count: n })),
+      easings: topEntries(easings, 4).map(([e, n]) => ({ easing: e, count: n })),
+      animations: topEntries(animations, 6).map(([a, n]) => ({ name: a, count: n })),
     },
     responsive: {
       breakpoints: topEntries(breakpoints, 8).map(([px, n]) => ({ px, count: n })).sort((a, b) => a.px - b.px),
     },
+    icons,
+    a11y,
     cssVars,
     darkVars,
     fontFaces,

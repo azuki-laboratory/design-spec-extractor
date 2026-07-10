@@ -6,6 +6,33 @@ const CONTACT_EMAIL = 'lab.azukki@gmail.com';
 
 const $ = (id) => document.getElementById(id);
 
+// 커스텀 드롭다운(#langSelect) — 네이티브 select 대체. 값은 hidden #lang에 보관.
+function setLang(v) {
+  v = v === 'ko' ? 'ko' : 'en';
+  $('lang').value = v;
+  $('langLabelCur').textContent = v === 'ko' ? '한국어' : 'English';
+  document.querySelectorAll('#langMenu .select-opt').forEach((o) =>
+    o.setAttribute('aria-selected', String(o.dataset.value === v)));
+}
+(function initSelect() {
+  const sel = $('langSelect'), trig = $('langTrigger');
+  if (!sel) return;
+  const close = () => { sel.classList.remove('open'); trig.setAttribute('aria-expanded', 'false'); };
+  const open = () => { sel.classList.add('open'); trig.setAttribute('aria-expanded', 'true'); };
+  trig.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sel.classList.contains('open') ? close() : open();
+  });
+  trig.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(); }
+  });
+  document.querySelectorAll('#langMenu .select-opt').forEach((o) => {
+    o.addEventListener('click', (e) => { e.stopPropagation(); setLang(o.dataset.value); close(); });
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+})();
+
 // 폼 <-> 옵션 매핑
 function readForm() {
   let n = parseInt($('maxElements').value, 10);
@@ -20,7 +47,7 @@ function readForm() {
 }
 
 function writeForm(o) {
-  $('lang').value = o.lang === 'ko' ? 'ko' : 'en';
+  setLang(o.lang);
   $('maxElements').value = o.maxElements;
   $('saveAsDialog').checked = o.saveAsDialog;
   $('includeDarkPalette').checked = o.includeDarkPalette;

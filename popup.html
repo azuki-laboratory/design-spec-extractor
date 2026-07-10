@@ -200,6 +200,18 @@
         border-radius: 3px;
         padding: 3px 7px;
       }
+      #fingerprint {
+        display: none;
+        margin-bottom: 10px;
+        font-family: "SF Mono", Menlo, monospace;
+        font-size: 10.5px;
+        letter-spacing: 0.5px;
+        color: var(--azuki-ink-mute);
+      }
+      #fingerprint::before {
+        content: "◆ ";
+        color: var(--azuki-blue);
+      }
       #result {
         display: none;
         margin-top: 12px;
@@ -263,6 +275,7 @@
       <div id="pages"></div>
       <div id="mascot"></div>
       <div id="dna"></div>
+      <div id="fingerprint" title="design fingerprint"></div>
       <div id="preview"></div>
       <div class="actions">
         <button id="copy" data-i18n="copy">복사</button>
@@ -281,6 +294,7 @@
         <button id="download-shot">screenshot</button>
       </div>
       <div class="actions">
+        <button id="download-passport" data-i18n="passport">디자인 여권</button>
         <button id="open-preview" data-i18n="openPreview">미리보기 열기</button>
       </div>
     </div>

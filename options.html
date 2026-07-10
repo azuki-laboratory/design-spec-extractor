@@ -141,30 +141,80 @@
         outline-offset: 1px;
         border-color: var(--azuki-blue);
       }
-      select#lang {
+      /* 커스텀 드롭다운 (네이티브 select 대체) */
+      .select {
+        position: relative;
         width: 128px;
+      }
+      .select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font: inherit;
         font-size: 13px;
-        padding: 7px 28px 7px 10px;
+        padding: 7px 10px;
         border: 1px solid var(--azuki-hairline);
         border-radius: var(--radius-control);
-        background-color: var(--azuki-paper);
+        background: var(--azuki-paper);
         color: var(--azuki-ink);
         cursor: pointer;
-        appearance: none;
-        -webkit-appearance: none;
-        /* 브랜드 잉크 셰브론 (네이티브 화살표 대체) */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2314161c' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
       }
-      select#lang:hover {
+      .select-trigger:hover {
         border-color: var(--azuki-blue);
       }
-      select#lang:focus-visible {
+      .select-trigger:focus-visible {
         outline: 2px solid var(--azuki-blue-soft);
         outline-offset: 1px;
         border-color: var(--azuki-blue);
+      }
+      .select-caret {
+        flex-shrink: 0;
+        width: 0;
+        height: 0;
+        margin-left: 8px;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid var(--azuki-ink);
+        transition: transform 0.15s;
+      }
+      .select.open .select-caret {
+        transform: rotate(180deg);
+      }
+      .select-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 20;
+        display: none;
+        padding: 4px;
+        background: var(--azuki-paper);
+        border: 1px solid var(--azuki-hairline);
+        border-radius: var(--radius-control);
+        box-shadow: 0 1px 0 rgba(20, 22, 28, 0.06);
+      }
+      .select.open .select-menu {
+        display: block;
+      }
+      .select-opt {
+        padding: 7px 9px;
+        font-size: 13px;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--azuki-ink);
+      }
+      .select-opt:hover,
+      .select-opt.active {
+        background: var(--azuki-cream);
+      }
+      .select-opt[aria-selected="true"] {
+        font-weight: 700;
+      }
+      .select-opt[aria-selected="true"]::after {
+        content: "✓";
+        float: right;
+        color: var(--azuki-blue);
       }
       /* 토글 스위치 */
       .switch {
@@ -333,10 +383,23 @@
             </div>
           </div>
           <div class="ctrl">
-            <select id="lang">
-              <option value="en">English</option>
-              <option value="ko">한국어</option>
-            </select>
+            <input type="hidden" id="lang" value="en" />
+            <div class="select" id="langSelect">
+              <button
+                type="button"
+                class="select-trigger"
+                id="langTrigger"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+              >
+                <span id="langLabelCur">English</span>
+                <span class="select-caret" aria-hidden="true"></span>
+              </button>
+              <div class="select-menu" role="listbox" id="langMenu">
+                <div class="select-opt" role="option" data-value="en">English</div>
+                <div class="select-opt" role="option" data-value="ko">한국어</div>
+              </div>
+            </div>
           </div>
         </div>
 

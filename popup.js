@@ -33,6 +33,7 @@ const EXPORTERS = [
   { id: 'download-json', file: 'tokens.json', mime: 'application/json', fn: (d) => DesignGenerator.exportTokens(d, opts.lang).json, win: '__tokensJson' },
   { id: 'download-html', file: 'preview.html', mime: 'text/html', fn: (d) => DesignGenerator.exportPreview(d, opts.lang), win: '__previewHtml' },
   { id: 'download-tw', file: 'tailwind.config.js', mime: 'text/javascript', fn: (d) => DesignGenerator.exportTailwind(d, opts.lang), win: '__tailwindCfg' },
+  { id: 'download-passport', file: 'passport.svg', mime: 'image/svg+xml', fn: (d) => DesignGenerator.exportPassport(d, opts.lang), win: '__passportSvg' },
 ];
 
 // 분석 대상 탭에 접근할 host 권한 확보.
@@ -108,6 +109,12 @@ function render() {
     dnaEl.appendChild(s);
   });
   dnaEl.style.display = 'flex';
+  // 디자인 지문 코드
+  const fp = DesignGenerator.designFingerprint(data);
+  const fpEl = $('fingerprint');
+  fpEl.textContent = fp;
+  fpEl.style.display = 'block';
+  window.__fingerprint = fp; // E2E 검증용
   window.__agentPrompt = DesignGenerator.exportAgentPrompt(data, opts.lang); // E2E 검증용
 
   $('preview').textContent = previewText;

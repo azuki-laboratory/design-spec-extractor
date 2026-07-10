@@ -75,27 +75,37 @@
       display: flex; align-items: center; padding: 0 24px;
     }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .faded { opacity: 0.6; }
+    .spin { animation: spin 2s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .icon { width: 20px; height: 20px; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     @media (max-width: 480px) { .container { padding: 16px 8px; } }
   </style>
 </head>
 <body>
-  <header><strong>Fixture Nav</strong></header>
-  <div class="container">
+  <header>
+    <strong>Fixture Nav</strong>
+    <svg class="icon" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#e11d48"/></svg>
+  </header>
+  <nav aria-label="주요"><a href="#">홈</a></nav>
+  <main class="container">
     <div class="hero"></div>
     <h1>디자인 픽스처 페이지</h1>
     <p>이 페이지는 Design Spec Extractor의 E2E 테스트 대상입니다. <a href="#">링크 예시</a></p>
+    <p class="faded muted">흐린 보조 문구.</p>
     <div class="row">
-      <button class="btn-primary">주요 액션</button>
+      <button class="btn-primary spin">주요 액션</button>
       <button class="btn-secondary">보조 액션</button>
       <button class="btn-ghost">고스트</button>
       <input type="text" placeholder="검색어 입력" />
     </div>
     <div class="grid">
-      <div class="card"><h2>카드 A</h2><p class="muted">보조 텍스트 캡션.</p></div>
+      <div class="card"><h2>카드 A</h2><p class="muted">보조 텍스트 캡션.</p><img src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" alt="샘플 이미지" width="40" height="40" /></div>
       <div class="card"><h2>카드 B</h2><p class="muted">보조 텍스트 캡션.</p></div>
       <div class="card"><h2>카드 C</h2><p class="muted">보조 텍스트 캡션.</p></div>
     </div>
-  </div>
+  </main>
+  <footer>푸터</footer>
 </body>
 </html>
