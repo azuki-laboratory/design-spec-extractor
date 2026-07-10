@@ -245,6 +245,39 @@ async function main() {
     check('랜드마크 감지', md.includes('랜드마크') && md.includes('main'));
     check('인라인 SVG 아이콘 감지', /인라인 SVG 아이콘.*1/.test(md));
 
+    // 컴포넌트 감지 고도화
+    check('배지/태그/칩 감지', md.includes('배지 / 태그 / 칩') && /`badge`/.test(md));
+    check('폼 컨트롤 인벤토리', md.includes('폼 컨트롤') && md.includes('checkbox') && md.includes('radio'));
+    check('폼 accent 색 감지', /강조색\(accent\).*#e11d48/.test(md));
+    check('테이블 감지', md.includes('`table`') && md.includes('border-collapse'));
+
+    // 보안: preview.html/passport 살균 — 악성 값 주입이 실행 코드로 새어나가지 않아야 함
+    const xss = await popup.evaluate(() => {
+      const evil = {
+        meta: { title: '</title><script>window.__x=1<\/script>', url: 'https://e"vil</style><script>1<\/script>', analyzedAt: '2026', viewport: { width: 1, height: 1 }, elementsScanned: 1 },
+        theme: { isDark: false, pageBackground: '#fff' },
+        colors: { backgrounds: [{ hex: '#ffffff', weight: 1 }], texts: [{ hex: '#111111', count: 1 }], borders: [], links: [], gradients: [] },
+        typography: { families: [{ family: '</style><script>window.__x=1<\/script>', count: 1 }], sizes: [{ px: 16, count: 1 }], weights: [{ weight: 400, count: 1 }], headings: {}, body: { size: 16, weight: 400, lineHeight: 1.5, family: '</style><script>1<\/script>' } },
+        components: { buttons: [{ style: { background: 'red"><script>1<\/script>', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '14px', fontWeight: '700', boxShadow: 'none', transition: 'none' }, count: 1 }], input: null, card: null, nav: null, badge: null, table: null, formControls: null, linkUnderline: null, hoverRules: [], focusRules: [], jsHoverDiffs: [] },
+        layout: { spacingScale: [{ px: 8, count: 1 }], gaps: [], gridCount: 0, flexCount: 1, totalContainers: 1, containerWidths: [] },
+        depth: { shadows: [], radii: [{ px: 4, count: 1 }], zIndices: [], transitions: [] },
+        responsive: { breakpoints: [] }, cssVars: [], darkVars: [], fontFaces: [],
+      };
+      const pv = DesignGenerator.exportPreview(evil, 'en');
+      const ps = DesignGenerator.exportPassport(evil, 'en');
+      return { pvBad: /<script>/i.test(pv), psBad: /<script>/i.test(ps) };
+    });
+    check('preview.html XSS 살균 (raw <script> 없음)', xss.pvBad === false);
+    check('passport.svg XSS 살균 (raw <script> 없음)', xss.psBad === false);
+
+    // chrome.i18n — manifest 현지화(_locales) 해석 확인
+    const i18nMsg = await popup.evaluate(() => ({
+      desc: chrome.i18n.getMessage('extDescription'),
+      title: chrome.i18n.getMessage('actionTitle'),
+    }));
+    check('_locales 메시지 해석 (extDescription)', !!i18nMsg.desc && i18nMsg.desc.length > 0);
+    check('_locales 메시지 해석 (actionTitle)', !!i18nMsg.title && i18nMsg.title.length > 0);
+
     /* 결과 파일 저장 (수동 확인용) */
     const out = path.join(__dirname, 'output-DESIGN.md');
     fs.writeFileSync(out, md);

@@ -2,3 +2,4 @@ node_modules/
 dist/
 .env.publish
 test/output-*
+.DS_Store

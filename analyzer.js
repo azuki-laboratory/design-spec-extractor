@@ -233,6 +233,7 @@ function analyzePage(opts) {
       background: cs.backgroundColor,
       color: cs.color,
       border: cs.borderTopWidth !== '0px' ? `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}` : 'none',
+      borderStyle: cs.borderTopStyle,
       borderRadius: cs.borderTopLeftRadius,
       padding: `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`,
       fontSize: cs.fontSize,
@@ -301,6 +302,48 @@ function analyzePage(opts) {
     .slice(0, 50)
     .sort((a, b) => area(b) - area(a))[0];
   const cardStyle = cardEl ? styleSnapshot(cardEl) : null;
+
+  // 배지/칩: 배경 있는 작은 인라인 요소, 짧은 텍스트, 약간의 반경
+  const badgeEl = [...document.querySelectorAll('span, small, [class*="badge" i], [class*="tag" i], [class*="chip" i], [class*="pill" i], [class*="label" i]')]
+    .filter(visible)
+    .filter((el) => {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const bg = parseColor(cs.backgroundColor);
+      return !isTransparent(bg) && parseFloat(cs.borderTopLeftRadius) >= 2 &&
+        r.height > 0 && r.height <= 40 && r.width <= 220 &&
+        (el.textContent || '').trim().length <= 24 && el.children.length <= 1;
+    })[0];
+  const badgeStyle = badgeEl ? styleSnapshot(badgeEl) : null;
+
+  // 폼 컨트롤 인벤토리 (체크박스/라디오/셀렉트/텍스트영역/레인지 + accent 색)
+  const accentEl = document.querySelector('input[type=checkbox], input[type=radio]');
+  let formAccent = null;
+  if (accentEl) {
+    const ac = parseColor(getComputedStyle(accentEl).accentColor);
+    if (ac && !isTransparent(ac)) formAccent = toHex(ac);
+  }
+  const formControls = {
+    checkbox: !!document.querySelector('input[type=checkbox]'),
+    radio: !!document.querySelector('input[type=radio]'),
+    select: !!document.querySelector('select'),
+    textarea: !!document.querySelector('textarea'),
+    range: !!document.querySelector('input[type=range]'),
+    accent: formAccent,
+  };
+
+  // 테이블 스타일
+  const tableEl = [...document.querySelectorAll('table')].filter(visible)[0];
+  let tableStyle = null;
+  if (tableEl) {
+    const cell = tableEl.querySelector('td, th');
+    const ccs = cell ? getComputedStyle(cell) : null;
+    tableStyle = {
+      borderCollapse: getComputedStyle(tableEl).borderCollapse,
+      cellPadding: ccs ? `${ccs.paddingTop} ${ccs.paddingRight} ${ccs.paddingBottom} ${ccs.paddingLeft}` : null,
+      cellBorder: ccs && ccs.borderBottomWidth !== '0px' ? `${ccs.borderBottomWidth} ${ccs.borderBottomStyle} ${ccs.borderBottomColor}` : 'none',
+    };
+  }
 
   /* ---------- 스타일시트 단일 패스 ----------
      document.styleSheets를 한 번만 순회하며 규칙마다 아래 수집기로 분배한다:
@@ -455,6 +498,9 @@ function analyzePage(opts) {
       input: inputStyle,
       card: cardStyle,
       nav: navStyle,
+      badge: badgeStyle,
+      formControls,
+      table: tableStyle,
       linkUnderline,
       hoverRules,
       focusRules,

@@ -33,7 +33,7 @@ fs.mkdirSync(path.join(OUT, 'icons'), { recursive: true });
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
 
 // manifest 필수 키 검증 — 하나라도 빠지면 배포 빌드가 조용히 망가지므로 즉시 실패.
-const REQUIRED = ['manifest_version', 'name', 'version', 'background', 'action', 'side_panel', 'options_page'];
+const REQUIRED = ['manifest_version', 'name', 'version', 'background', 'action', 'side_panel', 'options_page', 'default_locale'];
 const lackKeys = REQUIRED.filter((k) => !(k in manifest));
 if (lackKeys.length) throw new Error(`빌드 중단 — manifest 필수 키 누락: ${lackKeys.join(', ')}`);
 if (!Array.isArray(manifest.optional_host_permissions) || !manifest.optional_host_permissions.length) {
@@ -50,12 +50,20 @@ fs.readdirSync(path.join(ROOT, 'icons')).forEach((f) =>
   fs.copyFileSync(path.join(ROOT, 'icons', f), path.join(OUT, 'icons', f))
 );
 
+// _locales (chrome.i18n) — default_locale 사용 시 필수
+const localesSrc = path.join(ROOT, '_locales');
+if (!fs.existsSync(localesSrc)) throw new Error('빌드 중단 — _locales 디렉터리 없음 (default_locale 사용 중)');
+fs.cpSync(localesSrc, path.join(OUT, '_locales'), { recursive: true });
+
 // 빌드 후 검증 — 배포에 최소 권한만 남았는지 + 산출 파일 존재 확인.
 if (manifest.permissions.includes('tabs') || 'host_permissions' in manifest) {
   throw new Error('빌드 중단 — 배포 manifest에 tabs/host_permissions가 남음');
 }
 const notCopied = FILES.filter((f) => !fs.existsSync(path.join(OUT, f)));
 if (notCopied.length) throw new Error(`빌드 중단 — 복사 실패: ${notCopied.join(', ')}`);
+if (!fs.existsSync(path.join(OUT, '_locales', manifest.default_locale, 'messages.json'))) {
+  throw new Error(`빌드 중단 — default_locale(${manifest.default_locale}) messages.json 없음`);
+}
 
 // 스토어 업로드용 zip
 const zipName = `azuki-v${manifest.version}.zip`;

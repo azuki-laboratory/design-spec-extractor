@@ -79,6 +79,11 @@
     .spin { animation: spin 2s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .icon { width: 20px; height: 20px; }
+    .badge { display: inline-block; background: #e11d48; color: #fff; border-radius: 999px; padding: 8px 16px; font-size: 12px; }
+    table { border-collapse: collapse; }
+    td, th { padding: 8px 16px; border-bottom: 1px solid #e5e7eb; }
+    select, textarea { padding: 8px; }
+    input[type="checkbox"], input[type="radio"] { accent-color: #e11d48; }
     @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     @media (max-width: 480px) { .container { padding: 16px 8px; } }
   </style>
@@ -105,6 +110,17 @@
       <div class="card"><h2>카드 B</h2><p class="muted">보조 텍스트 캡션.</p></div>
       <div class="card"><h2>카드 C</h2><p class="muted">보조 텍스트 캡션.</p></div>
     </div>
+    <p><span class="badge">NEW</span></p>
+    <form>
+      <label><input type="checkbox" /> 동의</label>
+      <label><input type="radio" name="r" /> 옵션</label>
+      <select><option>선택</option></select>
+      <textarea placeholder="메모"></textarea>
+    </form>
+    <table>
+      <thead><tr><th>이름</th><th>값</th></tr></thead>
+      <tbody><tr><td>A</td><td>1</td></tr></tbody>
+    </table>
   </main>
   <footer>푸터</footer>
 </body>

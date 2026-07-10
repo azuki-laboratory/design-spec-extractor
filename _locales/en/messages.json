@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Azuki — Design Spec Extractor",
+    "description": "Extension name shown in the toolbar, chrome://extensions, and the Web Store."
+  },
+  "extDescription": {
+    "message": "Analyze the current site's design and generate a DESIGN.md spec and design tokens for AI agents.",
+    "description": "Extension description shown in chrome://extensions and the Web Store."
+  },
+  "actionTitle": {
+    "message": "Azuki — open side panel / add this page",
+    "description": "Toolbar icon tooltip."
+  }
+}

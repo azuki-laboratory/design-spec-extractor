@@ -14,6 +14,15 @@ const DesignGenerator = (() => {
   let LANG = 'en';
   const T = (en, ko) => (LANG === 'ko' ? ko : en);
 
+  /* ---------- 보안: 페이지 유래 값 살균 ----------
+     분석 대상은 신뢰할 수 없는(악성 가능) 페이지다. 추출값을 preview.html/passport.svg에
+     삽입할 때 반드시 살균한다. preview.html은 blob(=확장 origin)으로 열리므로 XSS 시 확장 권한 위험. */
+  const htmlEsc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  // CSS 값 화이트리스트 (색/치수/폰트명/그림자만 허용, < " ' { } ; \ 등 차단)
+  const cssSafe = (v) => String(v == null ? '' : v).replace(/[^a-zA-Z0-9#(),.%/\s_-]/g, '').slice(0, 300);
+
   /* ---------- 색상 헬퍼 ---------- */
   function hexToRgb(hex) {
     const m = hex.match(/^#(..)(..)(..)$/);
@@ -601,6 +610,34 @@ const DesignGenerator = (() => {
       push('```');
       push('');
     }
+    if (data.components.badge) {
+      const s = data.components.badge;
+      push(T('### `badge` — Badge / Tag / Chip', '### `badge` — 배지 / 태그 / 칩'));
+      push(T(`- Background ${colorRef(s.background)}, text ${colorRef(s.color)}`, `- 배경 ${colorRef(s.background)}, 텍스트 ${colorRef(s.color)}`));
+      push('```css');
+      push(`background: ${s.background};`);
+      push(`color: ${s.color};`);
+      push(`border-radius: ${s.borderRadius};`);
+      push(`padding: ${s.padding};`);
+      push(`font-size: ${s.fontSize};`);
+      push('```');
+      push('');
+    }
+    const fc = data.components.formControls;
+    if (fc && (fc.checkbox || fc.radio || fc.select || fc.textarea || fc.range)) {
+      const present = ['checkbox', 'radio', 'select', 'textarea', 'range'].filter((k) => fc[k]);
+      push(T('### Form Controls', '### 폼 컨트롤'));
+      push(T(`- **Present**: ${present.join(', ')}`, `- **사용 컨트롤**: ${present.join(', ')}`));
+      if (fc.accent) push(T(`- **Accent color**: ${colorRef(fc.accent)}`, `- **강조색(accent)**: ${colorRef(fc.accent)}`));
+      push('');
+    }
+    if (data.components.table) {
+      const s = data.components.table;
+      push(T('### `table`', '### `table` — 표'));
+      push(T(`- border-collapse \`${s.borderCollapse}\`${s.cellPadding ? `, cell padding \`${s.cellPadding}\`` : ''}`, `- border-collapse \`${s.borderCollapse}\`${s.cellPadding ? `, 셀 패딩 \`${s.cellPadding}\`` : ''}`));
+      if (s.cellBorder && s.cellBorder !== 'none') push(T(`- cell border: \`${s.cellBorder}\``, `- 셀 테두리: \`${s.cellBorder}\``));
+      push('');
+    }
     if (data.components.linkUnderline) {
       push(T('### Link Convention', '### 링크 관례'));
       push(T(`- Underline: \`${data.components.linkUnderline}\`${data.components.linkUnderline === 'none' ? ' — distinguished by {colors.link} color only' : ''}`, `- 밑줄: \`${data.components.linkUnderline}\`${data.components.linkUnderline === 'none' ? ' — {colors.link} 색상만으로 구분' : ''}`));
@@ -1048,6 +1085,20 @@ const DesignGenerator = (() => {
         input: pick('input'),
         card: pick('card'),
         nav: pick('nav'),
+        badge: pick('badge'),
+        table: pick('table'),
+        formControls: (() => {
+          const fcs = analyses.map((a) => a.components.formControls).filter(Boolean);
+          if (!fcs.length) return null;
+          return {
+            checkbox: fcs.some((f) => f.checkbox),
+            radio: fcs.some((f) => f.radio),
+            select: fcs.some((f) => f.select),
+            textarea: fcs.some((f) => f.textarea),
+            range: fcs.some((f) => f.range),
+            accent: (fcs.find((f) => f.accent) || {}).accent || null,
+          };
+        })(),
         linkUnderline: pick('linkUnderline'),
         hoverRules: dedupeRules('hoverRules', 20),
         focusRules: dedupeRules('focusRules', 10),
@@ -1107,18 +1158,20 @@ const DesignGenerator = (() => {
     const typeRoles = buildTypeTokens(data);
     const sh = data.depth.shadows || [];
     const btns = (data.components.buttons || []).slice(0, 2);
-    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const esc = htmlEsc; // 텍스트/속성: 완전 이스케이프
 
-    const canvas = tokens.find((t) => t.name === 'canvas')?.hex || '#ffffff';
-    const ink = tokens.find((t) => t.name === 'ink')?.hex || '#111111';
-    const hairline = tokens.find((t) => t.name === 'hairline')?.hex || '#dddddd';
-    const bodyFam = data.typography.body.family;
+    const canvas = cssSafe(tokens.find((t) => t.name === 'canvas')?.hex || '#ffffff');
+    const ink = cssSafe(tokens.find((t) => t.name === 'ink')?.hex || '#111111');
+    const hairline = cssSafe(tokens.find((t) => t.name === 'hairline')?.hex || '#dddddd');
+    const bodyFam = cssSafe(data.typography.body.family);
+    const bodySize = cssSafe(data.typography.body.size);
+    const bodyLh = cssSafe(data.typography.body.lineHeight);
 
     const H = [];
     H.push(`<!DOCTYPE html><html lang="${LANG}"><head><meta charset="UTF-8">`);
     H.push(`<title>Preview — ${esc(data.meta.title || data.meta.url)}</title>`);
     H.push('<style>');
-    H.push(`body{background:${canvas};color:${ink};font-family:"${bodyFam}",sans-serif;font-size:${data.typography.body.size}px;line-height:${data.typography.body.lineHeight};margin:0;padding:40px;max-width:960px;margin-inline:auto}`);
+    H.push(`body{background:${canvas};color:${ink};font-family:"${bodyFam}",sans-serif;font-size:${bodySize}px;line-height:${bodyLh};margin:0;padding:40px;max-width:960px;margin-inline:auto}`);
     H.push(`section{margin-bottom:48px}h2.pv{font-size:14px;text-transform:uppercase;letter-spacing:1px;opacity:.55;border-bottom:1px solid ${hairline};padding-bottom:8px}`);
     H.push('.sw{display:inline-block;width:150px;margin:0 12px 12px 0;vertical-align:top;font-size:12px}.sw i{display:block;height:56px;border-radius:8px;border:1px solid rgba(128,128,128,.25)}');
     H.push('.chips span{display:inline-block;background:rgba(128,128,128,.12);margin:0 8px 8px 0;text-align:center;font-size:11px;line-height:2.2}');
@@ -1128,13 +1181,13 @@ const DesignGenerator = (() => {
 
     H.push('<section><h2 class="pv">Colors</h2>');
     tokens.forEach((t) => {
-      H.push(`<div class="sw"><i style="background:${t.hex}"></i><b>${t.name}</b><br>${t.hex}</div>`);
+      H.push(`<div class="sw"><i style="background:${cssSafe(t.hex)}"></i><b>${esc(t.name)}</b><br>${esc(t.hex)}</div>`);
     });
     H.push('</section>');
 
     H.push('<section><h2 class="pv">Typography</h2>');
     typeRoles.forEach((r) => {
-      H.push(`<div style="font-family:'${esc(r.family)}';font-size:${r.size}px;font-weight:${r.weight};margin-bottom:8px">${r.token} — ${r.size}px / ${r.weight}</div>`);
+      H.push(`<div style="font-family:'${cssSafe(r.family)}';font-size:${cssSafe(r.size)}px;font-weight:${cssSafe(r.weight)};margin-bottom:8px">${esc(r.token)} — ${esc(r.size)}px / ${esc(r.weight)}</div>`);
     });
     H.push('</section>');
 
@@ -1142,30 +1195,30 @@ const DesignGenerator = (() => {
       H.push('<section><h2 class="pv">Components</h2>');
       btns.forEach((b, i) => {
         const st = b.style;
-        H.push(`<button style="background:${st.background};color:${st.color};border:${st.border};border-radius:${st.borderRadius};padding:${st.padding};font-size:${st.fontSize};font-weight:${st.fontWeight};${st.boxShadow !== 'none' ? `box-shadow:${st.boxShadow};` : ''}margin-right:12px;cursor:pointer">button-${i === 0 ? 'primary' : 'secondary'}</button>`);
+        H.push(`<button style="background:${cssSafe(st.background)};color:${cssSafe(st.color)};border:${cssSafe(st.border)};border-radius:${cssSafe(st.borderRadius)};padding:${cssSafe(st.padding)};font-size:${cssSafe(st.fontSize)};font-weight:${cssSafe(st.fontWeight)};${st.boxShadow !== 'none' ? `box-shadow:${cssSafe(st.boxShadow)};` : ''}margin-right:12px;cursor:pointer">button-${i === 0 ? 'primary' : 'secondary'}</button>`);
       });
       if (data.components.input) {
         const st = data.components.input;
-        H.push(`<input placeholder="text-input" style="background:${st.background};color:${st.color};border:${st.border};border-radius:${st.borderRadius};padding:${st.padding};font-size:${st.fontSize};margin-left:4px">`);
+        H.push(`<input placeholder="text-input" style="background:${cssSafe(st.background)};color:${cssSafe(st.color)};border:${cssSafe(st.border)};border-radius:${cssSafe(st.borderRadius)};padding:${cssSafe(st.padding)};font-size:${cssSafe(st.fontSize)};margin-left:4px">`);
       }
       if (data.components.card) {
         const st = data.components.card;
-        H.push(`<div style="background:${st.background};border:${st.border};border-radius:${st.borderRadius};padding:${st.padding};${st.boxShadow !== 'none' ? `box-shadow:${st.boxShadow};` : ''}max-width:320px;margin-top:20px"><b>card</b><p style="margin:.5em 0 0;opacity:.7">${T('Reproduced extracted card style.', '추출된 카드 스타일 재현.')}</p></div>`);
+        H.push(`<div style="background:${cssSafe(st.background)};border:${cssSafe(st.border)};border-radius:${cssSafe(st.borderRadius)};padding:${cssSafe(st.padding)};${st.boxShadow !== 'none' ? `box-shadow:${cssSafe(st.boxShadow)};` : ''}max-width:320px;margin-top:20px"><b>card</b><p style="margin:.5em 0 0;opacity:.7">${T('Reproduced extracted card style.', '추출된 카드 스타일 재현.')}</p></div>`);
       }
       H.push('</section>');
     }
 
     if (spacing.length || radius.length) {
       H.push('<section><h2 class="pv">Spacing &amp; Radius</h2><div class="chips">');
-      spacing.forEach((s) => H.push(`<span style="width:${Math.max(s.px * 2, 34)}px">${s.name} ${s.px}</span>`));
+      spacing.forEach((s) => H.push(`<span style="width:${Math.max(s.px * 2, 34)}px">${esc(s.name)} ${esc(s.px)}</span>`));
       H.push('</div><div class="chips">');
-      radius.forEach((r) => H.push(`<span style="width:72px;border-radius:${r.name === 'pill' ? '9999px' : r.px + 'px'};border:1px solid ${hairline}">${r.name}</span>`));
+      radius.forEach((r) => H.push(`<span style="width:72px;border-radius:${r.name === 'pill' ? '9999px' : cssSafe(r.px) + 'px'};border:1px solid ${hairline}">${esc(r.name)}</span>`));
       H.push('</div></section>');
     }
 
     if (sh.length) {
       H.push('<section><h2 class="pv">Elevation</h2>');
-      sh.slice(0, 4).forEach((s, i) => H.push(`<div class="shadow-box" style="box-shadow:${s.shadow}">Level ${i + 1}</div>`));
+      sh.slice(0, 4).forEach((s, i) => H.push(`<div class="shadow-box" style="box-shadow:${cssSafe(s.shadow)}">Level ${i + 1}</div>`));
       H.push('</section>');
     }
 
@@ -1358,10 +1411,10 @@ const DesignGenerator = (() => {
     const tokens = buildColorTokens(data);
     const dna = computeDNA(data);
     const fp = designFingerprint(data);
-    const primary = (tokens.find((t) => t.name === 'primary') || {}).hex || '#2f6bff';
-    const swatches = tokens.slice(0, 6).map((t) => t.hex);
+    const primary = cssSafe((tokens.find((t) => t.name === 'primary') || {}).hex || '#2f6bff');
+    const swatches = tokens.slice(0, 6).map((t) => cssSafe(t.hex));
     const body = data.typography.body || {};
-    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const esc = htmlEsc; // SVG 텍스트/속성: 완전 이스케이프(따옴표 포함)
     const title = esc((data.meta.title || data.meta.url || '').slice(0, 42));
     const host = esc((() => { try { return new URL(data.meta.url).host; } catch (e) { return data.meta.url || ''; } })().slice(0, 48));
 
