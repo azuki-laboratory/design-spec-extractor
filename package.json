@@ -14,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "chrome-webstore-upload-cli": "^4.0.1",
     "playwright": "^1.61.1"
