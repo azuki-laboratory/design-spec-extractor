@@ -1348,14 +1348,59 @@ const DesignGenerator = (() => {
     return issues;
   }
 
-  /* ---------- Azuki 시그니처: 마스코트 촌평 ---------- */
+  /* ---------- Azuki 시그니처: 마스코트 촌평 ----------
+     상태(clean/warn/info)별 대사 풀 + 디자인 특성(다크/비비드/필/고대비/각짐) 플레이버.
+     designFingerprint로 결정적 선택 — 같은 사이트는 항상 같은 대사, 사이트별로 달라진다. */
   function mascotComment(data, lang) {
     if (lang !== undefined) LANG = lang === 'ko' ? 'ko' : 'en';
     const issues = computeLint(data);
     const warns = issues.filter((i) => i.level === 'warn').length;
-    if (!issues.length) return T('Clean and consistent — great tokens! 🫘', '토큰 깔끔하고 일관돼요 — 훌륭해요! 🫘');
-    if (warns) return T(`Spotted ${warns} thing(s) worth fixing — see the lint. 🫘`, `고칠 점 ${warns}개 발견 — 린트를 확인해요. 🫘`);
-    return T('Looks solid, just a few small notes. 🫘', '대체로 탄탄해요, 참고사항 몇 개만! 🫘');
+
+    // 결정적 인덱스 (지문 문자열 해시)
+    const fp = designFingerprint(data);
+    let hh = 0;
+    for (let i = 0; i < fp.length; i++) hh = (hh * 31 + fp.charCodeAt(i)) >>> 0;
+    const pick = (arr) => arr[hh % arr.length];
+
+    let base;
+    if (!issues.length) {
+      base = pick([
+        T('Clean and consistent — great tokens! 🫘', '토큰 깔끔하고 일관돼요 — 훌륭해요! 🫘'),
+        T("Tidy system. Nothing to nag about. 🫘", '정돈된 시스템이에요. 잔소리할 게 없네요. 🫘'),
+        T('Every token lines up. Chef\'s kiss. 🫘', '토큰이 딱딱 맞아떨어져요. 최고! 🫘'),
+        T('Coherent and calm — I like it. 🫘', '일관되고 차분해요 — 아즈키 마음에 들어요. 🫘'),
+        T('No loose ends. Ship it. 🫘', '흐트러진 데 없어요. 그대로 가도 돼요. 🫘'),
+      ]);
+    } else if (warns) {
+      base = pick([
+        T(`Spotted ${warns} thing(s) worth fixing — see the lint. 🫘`, `고칠 점 ${warns}개 발견 — 린트를 확인해요. 🫘`),
+        T(`${warns} rough edge(s) below. Quick wins! 🫘`, `아래 ${warns}가지만 다듬으면 돼요. 금방이에요! 🫘`),
+        T(`Found ${warns} issue(s) — small tweaks, big polish. 🫘`, `${warns}건 발견 — 살짝만 손보면 확 살아나요. 🫘`),
+        T(`${warns} spot(s) need love. Check the lint. 🫘`, `${warns}군데만 손보면 완성이에요. 린트 봐요. 🫘`),
+      ]);
+    } else {
+      base = pick([
+        T('Looks solid, just a few small notes. 🫘', '대체로 탄탄해요, 참고사항 몇 개만! 🫘'),
+        T('Solid base — a couple of notes below. 🫘', '기반은 탄탄해요 — 아래 참고 몇 개. 🫘'),
+        T('Nearly there. Minor notes only. 🫘', '거의 다 왔어요. 사소한 메모뿐이에요. 🫘'),
+      ]);
+    }
+
+    // 특성 플레이버 (해당하면 한 마디 덧붙임)
+    const tokens = buildColorTokens(data);
+    const primary = tokens.find((t) => t.name === 'primary');
+    const ink = tokens.find((t) => t.name === 'ink');
+    const canvas = tokens.find((t) => t.name === 'canvas');
+    const radius = buildRadiusTokens(data);
+    const flavors = [];
+    if (data.theme.isDark) flavors.push(T('Moody dark palette.', '무드 있는 다크 팔레트네요.'));
+    if (primary && saturation(primary.hex) > 0.6) flavors.push(T('Bold, vivid color.', '대담하고 선명한 컬러예요.'));
+    if (radius.some((r) => r.name === 'pill')) flavors.push(T('Those pill shapes feel friendly.', '동글동글 필 형태가 친근해요.'));
+    if (ink && canvas && contrast(ink.hex, canvas.hex) >= 7) flavors.push(T('Crisp, high contrast.', '또렷한 고대비예요.'));
+    const maxRad = Math.max(0, ...radius.filter((r) => r.name !== 'pill').map((r) => r.px));
+    if (maxRad < 6 && !radius.some((r) => r.name === 'pill')) flavors.push(T('Sharp and minimal.', '각지고 미니멀해요.'));
+
+    return flavors.length ? `${base} ${pick(flavors)}` : base;
   }
 
   /* ---------- Azuki 시그니처: 에이전트 프롬프트 브릿지 ---------- */
