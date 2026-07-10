@@ -5,7 +5,8 @@
 ## 파일 맵
 - `analyzer.js` — 페이지 주입 분석 함수 `analyzePage()`. **자기완결 필수**: `chrome.scripting.executeScript({func})`로 직렬화되므로 함수 밖 스코프 참조 시 런타임 ReferenceError. 헬퍼는 전부 함수 내부에 둘 것
 - `generator.js` — 분석 JSON → DESIGN.md(섹션 1~9 + 10 Design Lint) 변환. 진입점 `DesignGenerator.generate(data, lang)`. **다국어**: 공개 함수는 `lang`('en'|'ko', 기본 en) 인자. 모듈 `LANG` + `T(en, ko)`로 출력 문자열 선택. 색상 토큰 메모는 LANG별 캐시. e2e는 lang='ko'로 검증. **Azuki 시그니처 API**: `computeDNA`(디자인 지문 태그), `computeLint`(토큰 위반 진단), `mascotComment`(마스코트 촌평), `exportAgentPrompt`(에이전트 붙여넣기 프롬프트)
-- `i18n.js` — popup/options 공용 UI 문자열(`AZUKI_UI` en/ko) + 적용 헬퍼(`applyI18n`, `AZUKI_T`). 정적 요소는 `data-i18n`/`data-i18n-html`/`data-i18n-title`. **주입 안 됨(분석은 analyzer만 주입)**
+- `i18n.js` — popup/options **런타임** UI 문자열(`AZUKI_UI` en/ko) + 적용 헬퍼(`applyI18n`, `AZUKI_T`). 사용자 토글(storage.sync.lang) 기반 — chrome.i18n과 별개. 정적 요소는 `data-i18n`/`data-i18n-html`/`data-i18n-title`
+- `_locales/en·ko/messages.json` — **manifest 문자열**(name/description/action title) 현지화. chrome.i18n + `default_locale:en` + manifest `__MSG_키__`. 브라우저 UI 언어 따름(앱 내 토글과 별개). build.js가 dist로 복사
 - `popup.js` — 사이드패널 UI. 버튼(#analyze/#add)으로 현재 탭 분석·병합, 미리보기/DNA/린트/내보내기. 패널이라 안 닫힘 → analyses 메모리 유지. **배포는 host 권한 없음 → 분석 전 `ensureHostAccess()`가 `chrome.permissions.request`로 런타임 접근 획득**(버튼 클릭=제스처, 첫 await로 호출). 탭 선택은 lastFocusedWindow 우선
 - `background.js` — service worker. 아이콘 클릭 시 사이드패널 열기 + hotreload(installType 게이트). **개발·배포 공용**. 분석은 안 함(패널이 수행)
 - `options.html` / `options.js` — 설정 페이지(options_page). 설명 + 사용자 옵션(분석 요소 상한/저장 다이얼로그/다크 팔레트 포함) + 문의 mailto. `chrome.storage.sync` 저장. **기본값 DEFAULT_OPTS는 popup.js와 동기 유지**

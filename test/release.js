@@ -40,7 +40,9 @@ async function main() {
   check('side_panel 경로 유지', manifest.side_panel && manifest.side_panel.default_path === 'popup.html');
   check('options_page 유지', manifest.options_page === 'options.html');
   check('background(service worker) 유지', !!(manifest.background && manifest.background.service_worker));
-  ['popup.html', 'popup.js', 'analyzer.js', 'generator.js', 'background.js', 'options.html', 'options.js', 'i18n.js', 'icons/icon128.png'].forEach((f) =>
+  check('default_locale 설정 (en)', manifest.default_locale === 'en');
+  check('__MSG__ 현지화 참조 유지', String(manifest.description).startsWith('__MSG_') && String(manifest.action.default_title).startsWith('__MSG_'));
+  ['popup.html', 'popup.js', 'analyzer.js', 'generator.js', 'background.js', 'options.html', 'options.js', 'i18n.js', '_locales/en/messages.json', '_locales/ko/messages.json', 'icons/icon128.png'].forEach((f) =>
     check(`파일 포함: ${f}`, fs.existsSync(path.join(OUT, f)))
   );
 

@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Azuki — Design Spec Extractor",
+    "description": "툴바·chrome://extensions·웹스토어에 표시되는 확장 이름."
+  },
+  "extDescription": {
+    "message": "현재 사이트의 디자인을 분석해 AI 에이전트용 DESIGN.md 스펙과 디자인 토큰을 생성합니다.",
+    "description": "chrome://extensions·웹스토어에 표시되는 확장 설명."
+  },
+  "actionTitle": {
+    "message": "Azuki — 사이드패널 열기 / 이 페이지 추가",
+    "description": "툴바 아이콘 툴팁."
+  }
+}
