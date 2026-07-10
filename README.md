@@ -1,18 +1,34 @@
 # Azuki — Design Spec Extractor
 
-현재 보고 있는 웹사이트의 디자인을 분석하여 **DESIGN.md** 문서를 자동 생성하는 크롬 확장 프로그램입니다.
+현재 보고 있는 웹사이트의 디자인을 분석하여 **DESIGN.md** 문서와 디자인 토큰을 자동 생성하는 크롬 확장 프로그램입니다. AI 코딩 에이전트가 바로 쓸 수 있는 스펙을 만듭니다.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-2f6bff.svg)](LICENSE)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-MV3-14161c.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+![Lang](https://img.shields.io/badge/i18n-EN%20%C2%B7%20KO-14161c.svg)
+
+**GitHub:** https://github.com/azuki-laboratory/design-spec-extractor
 
 ## 생성되는 문서 구조
 
-1. **시각적 테마 및 분위기** — 다크/라이트 판별, 분위기 서술 (채도·반경·그림자 기반 휴리스틱)
+1. **시각적 테마 및 분위기** — 다크/라이트 판별, 분위기 서술 + **디자인 DNA** 태그
 2. **컬러 팔레트 및 역할** — Background / Text / Primary / Accent / Border 역할 자동 배정, 사이트의 CSS 커스텀 프로퍼티(원본 토큰)도 함께 추출
 3. **타이포그래피 규칙** — 폰트 패밀리, H1~H6 스펙, 타입 스케일, 굵기
-4. **컴포넌트 스타일링** — 버튼(Primary/Secondary 클러스터링), 입력창, 카드 + 스타일시트에서 추출한 `:hover` / `:focus` 상태 규칙
+4. **컴포넌트 스타일링** — 버튼(Primary/Secondary 클러스터링), 입력창, 카드, 내비, **배지/태그·폼 컨트롤·테이블** + 스타일시트 `:hover`/`:focus` 상태 규칙
 5. **레이아웃 원칙** — 실사용 여백 스케일, gap, flex/grid 비중, 중앙 컨테이너 max-width
-6. **깊이감 및 고도** — 그림자 시스템(빈도순 elevation 레벨), 반경 스케일, z-index, transition
+6. **깊이감 및 고도** — 그림자 elevation, 반경·**테두리 두께**·**불투명도** 스케일, z-index, **모션**(전환·이징·애니메이션)
 7. **Do's and Don'ts** — 추출된 토큰 기반 가드레일 자동 생성
-8. **반응형 동작** — 미디어쿼리에서 추출한 브레이크포인트, 모바일 전략 제안
-9. **에이전트 프롬프트 가이드** — 실제 토큰 값이 채워진, AI에게 바로 붙여넣을 수 있는 프롬프트 셋
+8. **반응형 동작** — 미디어쿼리 브레이크포인트, 모바일 전략 제안
+9. **에이전트 프롬프트 가이드** — 실제 토큰 값이 채워진, AI에게 바로 붙여넣을 프롬프트 셋
+10. **디자인 린트** — 페이지가 자기 토큰을 어기는 지점 진단(대비·그리드 이탈·반경 이탈 등)
+11. **접근성 & 자산** — 제목 순서·이미지 alt 커버리지·랜드마크·인라인 SVG 아이콘
+
+## 시그니처 기능
+
+- **디자인 여권(passport.svg)** + **지문 코드**(`AZ-XXXX-XXXX`) — 사이트 디자인 정체성 한 장 요약·대조
+- **에이전트 프롬프트 복사** — 토큰이 채워진 프롬프트를 클립보드로 바로
+- **다중 페이지 병합** — 여러 페이지를 하나의 스펙으로
+- **내보내기** — DESIGN.md · tokens.css · tokens.json · tailwind.config.js · preview.html · screenshot
+- **다국어(EN/KO)** — UI·생성문서 전환, manifest는 chrome.i18n 현지화
 
 ## 설치 (개발자 모드)
 
