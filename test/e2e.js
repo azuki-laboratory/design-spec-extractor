@@ -224,6 +224,27 @@ async function main() {
     const agentPrompt = await popup.evaluate(() => window.__agentPrompt);
     check('에이전트 프롬프트 생성', !!agentPrompt && agentPrompt.includes('Colors:') && agentPrompt.includes('#e11d48'));
 
+    // 디자인 지문 + 여권 (신규 아이덴티티)
+    const fp = await popup.evaluate(() => window.__fingerprint);
+    check('디자인 지문 코드 형식', /^AZ-[0-9A-F]{4}-[0-9A-F]{4}$/.test(fp || ''));
+    check('지문 표시 요소', await popup.isVisible('#fingerprint'));
+    const passport = await popup.evaluate(() => window.__passportSvg);
+    check('디자인 여권 SVG 생성', !!passport && passport.includes('<svg') && passport.includes('DESIGN PASSPORT'));
+    check('여권에 지문 포함', !!passport && fp && passport.includes(fp));
+    check('여권 다운로드 버튼', await popup.isVisible('#download-passport'));
+    check('미리보기 열기 버튼', await popup.isVisible('#open-preview'));
+    fs.writeFileSync(path.join(__dirname, 'output-passport.svg'), passport || '');
+
+    // 분석 고도화: 테두리 두께 / 불투명도 / 모션 / 접근성 / 아이콘 (섹션 6·11)
+    check('테두리 두께 추출', /테두리 두께.*1px/.test(md));
+    check('불투명도 스케일 추출', md.includes('불투명도 스케일') && md.includes('0.6'));
+    check('애니메이션 추출', md.includes('애니메이션') && md.includes('spin'));
+    check('접근성 섹션 (11)', md.includes('## 11.') && md.includes('접근성 & 자산'));
+    check('제목 순서', md.includes('제목 순서') && md.includes('h1'));
+    check('이미지 alt 커버리지 100%', /이미지 alt 커버리지.*100%/.test(md));
+    check('랜드마크 감지', md.includes('랜드마크') && md.includes('main'));
+    check('인라인 SVG 아이콘 감지', /인라인 SVG 아이콘.*1/.test(md));
+
     /* 결과 파일 저장 (수동 확인용) */
     const out = path.join(__dirname, 'output-DESIGN.md');
     fs.writeFileSync(out, md);
