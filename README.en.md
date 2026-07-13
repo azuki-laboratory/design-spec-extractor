@@ -80,27 +80,35 @@ test/                  e2e (Playwright) · fixture · release (release smoke)
 
 ## Data flow
 
-```
-[toolbar icon click]
-      │  (background.js)
-      ▼
-[side panel opens = src/popup.html]
-      │  click "Analyze this page"
-      ▼
-ensureHostAccess()  ── release: chrome.permissions.request (runtime site access)
-      │
-      ▼
-chrome.scripting.executeScript({ func: analyzePage })   ← inject src/analyzer.js
-      │  (scan computed styles, stylesheets, CSS vars in the target page context)
-      ▼
-analysis JSON  ──►  DesignGenerator (src/generator/*)
-      │               core → doc/signature/exporters
-      ▼
-panel render (preview · DNA · fingerprint · mascot) + exports (md/css/json/tw/svg/png)
+```mermaid
+flowchart TD
+  user(["👤 User"]) -->|"toolbar icon"| bg["background.js<br/>(service worker)"]
+  bg -->|"open side panel"| panel["Side Panel<br/>popup.html · popup.js · popup.css"]
+  user -->|"Analyze / ＋ Add page"| panel
+  panel -->|"ensureHostAccess()<br/>executeScript(analyzePage)"| az[["analyzer.js<br/>injected in target page"]]
+  az -->|"design JSON"| core
+
+  subgraph GEN ["src/generator/ (ESM)"]
+    core["core.js<br/>state · color · tokens · scales"]
+    doc["doc.js<br/>DESIGN.md (§1–11)"]
+    sig["signature.js<br/>DNA · lint · mascot · fingerprint · passport"]
+    exp["exporters.js<br/>tokens · preview · tailwind · agent · merge"]
+    idx(["index.js<br/>DesignGenerator API"])
+    core --> doc --> idx
+    core --> sig --> idx
+    core --> exp --> idx
+  end
+
+  idx -->|"render + export"| out["DESIGN.md · tokens.css/json<br/>tailwind · preview.html · passport.svg · png"]
+
+  store[("chrome.storage<br/>settings · session")] -.-> panel
+  theme["ui/theme.css<br/>brand tokens"] -.-> panel
+  i18n["i18n.js + _locales<br/>EN / KO"] -.-> panel
 ```
 
 - **Multi-page**: the side panel never closes → `analyses[]` stays in memory → `merge()` regenerates the combined spec.
 - **The panel performs analysis** (background only opens the panel). executeScript runs right after a user gesture (button).
+- **generator**: untrusted input → `exporters` sanitizes outputs with `htmlEsc`+`cssSafe`.
 
 ## Module responsibilities
 
