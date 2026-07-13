@@ -6,7 +6,10 @@
 [![Chrome Extension](https://img.shields.io/badge/Chrome-MV3-14161c.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 ![Lang](https://img.shields.io/badge/i18n-EN%20%C2%B7%20KO-14161c.svg)
 
-**GitHub:** https://github.com/azuki-laboratory/design-spec-extractor · **English:** [README.en.md](README.en.md)
+[![GitHub](https://img.shields.io/badge/GitHub-repo-14161c.svg?logo=github)](https://github.com/azuki-laboratory/design-spec-extractor)
+
+[![README 한국어](https://img.shields.io/badge/README-%ED%95%9C%EA%B5%AD%EC%96%B4-2f6bff.svg)](README.md)
+[![README English](https://img.shields.io/badge/README-English-5b606e.svg)](README.en.md)
 
 ## 생성되는 문서 구조 (DESIGN.md)
 
