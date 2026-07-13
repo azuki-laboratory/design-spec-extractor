@@ -4,6 +4,7 @@
 
 ## 파일 맵
 > **구조**: 소스는 전부 `src/` 아래, **네이티브 ESM**(확장 페이지·모듈은 `import/export`, 번들러 없음). 진입: `src/popup.js`·`src/options.js`(`<script type="module">`). 자산 `icons/`·`_locales/`·설정·`scripts/`·`test/`는 루트. HTML의 아이콘 경로는 루트절대(`/icons/...`).
+> **CSS**: 공용 `src/ui/theme.css`(브랜드 토큰 `:root`·리셋·focus = BRAND.md 단일 출처) + 전용 `src/popup.css`·`src/options.css`. HTML은 `<link>`로 theme→page 순 로드(전용이 공용 override). 인라인 `<style>` 금지.
 - `src/analyzer.js` — 페이지 주입 분석 함수 `export function analyzePage()`. **자기완결 필수**: `chrome.scripting.executeScript({func})`로 직렬화되므로 함수 밖 스코프 참조 시 런타임 ReferenceError. 헬퍼는 전부 함수 내부에 둘 것(ESM import도 함수 본문엔 넣지 말 것)
 - `src/generator/` — 분석 JSON → DESIGN.md(섹션 1~11)·토큰·시그니처 변환 (ESM 모듈). `index.js`가 `DesignGenerator` 조립. **`core.js`**(공유 `state.LANG`·`T`·`htmlEsc`/`cssSafe`·색상/토큰/스케일/무드/frontmatter 엔진) · **`doc.js`**(`generate`) · **`signature.js`**(`computeDNA`·`computeLint`·`mascotComment`·`designFingerprint`·`exportPassport`) · **`exporters.js`**(`exportTokens`/`Preview`/`Tailwind`/`AgentPrompt`·`merge`). **다국어**: 공개 함수 `lang`('en'|'ko', 기본 en), `state.LANG`+`T(en,ko)`로 선택, 색상토큰 메모는 LANG별 캐시. e2e는 lang='ko'로 검증
 - `src/i18n.js` — popup/options **런타임** UI 문자열(`AZUKI_UI` en/ko) + `export`(`applyI18n`, `AZUKI_T`). 사용자 토글(storage.sync.lang) 기반 — chrome.i18n과 별개. 정적 요소는 `data-i18n`/`data-i18n-html`/`data-i18n-title`
