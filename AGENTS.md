@@ -3,14 +3,15 @@
 크롬 확장(MV3). 현재 페이지 디자인 분석 → DESIGN.md 생성. 빌드 도구 없음, 순수 JS. 주석·문서 한국어.
 
 ## 파일 맵
-- `analyzer.js` — 페이지 주입 분석 함수 `analyzePage()`. **자기완결 필수**: `chrome.scripting.executeScript({func})`로 직렬화되므로 함수 밖 스코프 참조 시 런타임 ReferenceError. 헬퍼는 전부 함수 내부에 둘 것
-- `generator.js` — 분석 JSON → DESIGN.md(섹션 1~9 + 10 Design Lint) 변환. 진입점 `DesignGenerator.generate(data, lang)`. **다국어**: 공개 함수는 `lang`('en'|'ko', 기본 en) 인자. 모듈 `LANG` + `T(en, ko)`로 출력 문자열 선택. 색상 토큰 메모는 LANG별 캐시. e2e는 lang='ko'로 검증. **Azuki 시그니처 API**: `computeDNA`(디자인 지문 태그), `computeLint`(토큰 위반 진단), `mascotComment`(마스코트 촌평), `exportAgentPrompt`(에이전트 붙여넣기 프롬프트)
-- `i18n.js` — popup/options **런타임** UI 문자열(`AZUKI_UI` en/ko) + 적용 헬퍼(`applyI18n`, `AZUKI_T`). 사용자 토글(storage.sync.lang) 기반 — chrome.i18n과 별개. 정적 요소는 `data-i18n`/`data-i18n-html`/`data-i18n-title`
+> **구조**: 소스는 전부 `src/` 아래, **네이티브 ESM**(확장 페이지·모듈은 `import/export`, 번들러 없음). 진입: `src/popup.js`·`src/options.js`(`<script type="module">`). 자산 `icons/`·`_locales/`·설정·`scripts/`·`test/`는 루트. HTML의 아이콘 경로는 루트절대(`/icons/...`).
+- `src/analyzer.js` — 페이지 주입 분석 함수 `export function analyzePage()`. **자기완결 필수**: `chrome.scripting.executeScript({func})`로 직렬화되므로 함수 밖 스코프 참조 시 런타임 ReferenceError. 헬퍼는 전부 함수 내부에 둘 것(ESM import도 함수 본문엔 넣지 말 것)
+- `src/generator/` — 분석 JSON → DESIGN.md(섹션 1~11)·토큰·시그니처 변환 (ESM 모듈). `index.js`가 `DesignGenerator` 조립. **`core.js`**(공유 `state.LANG`·`T`·`htmlEsc`/`cssSafe`·색상/토큰/스케일/무드/frontmatter 엔진) · **`doc.js`**(`generate`) · **`signature.js`**(`computeDNA`·`computeLint`·`mascotComment`·`designFingerprint`·`exportPassport`) · **`exporters.js`**(`exportTokens`/`Preview`/`Tailwind`/`AgentPrompt`·`merge`). **다국어**: 공개 함수 `lang`('en'|'ko', 기본 en), `state.LANG`+`T(en,ko)`로 선택, 색상토큰 메모는 LANG별 캐시. e2e는 lang='ko'로 검증
+- `src/i18n.js` — popup/options **런타임** UI 문자열(`AZUKI_UI` en/ko) + `export`(`applyI18n`, `AZUKI_T`). 사용자 토글(storage.sync.lang) 기반 — chrome.i18n과 별개. 정적 요소는 `data-i18n`/`data-i18n-html`/`data-i18n-title`
 - `_locales/en·ko/messages.json` — **manifest 문자열**(name/description/action title) 현지화. chrome.i18n + `default_locale:en` + manifest `__MSG_키__`. 브라우저 UI 언어 따름(앱 내 토글과 별개). build.js가 dist로 복사
-- `popup.js` — 사이드패널 UI. 버튼(#analyze/#add)으로 현재 탭 분석·병합, 미리보기/DNA/린트/내보내기. 패널이라 안 닫힘 → analyses 메모리 유지. **배포는 host 권한 없음 → 분석 전 `ensureHostAccess()`가 `chrome.permissions.request`로 런타임 접근 획득**(버튼 클릭=제스처, 첫 await로 호출). 탭 선택은 lastFocusedWindow 우선
-- `background.js` — service worker. 아이콘 클릭 시 사이드패널 열기 + hotreload(installType 게이트). **개발·배포 공용**. 분석은 안 함(패널이 수행)
-- `options.html` / `options.js` — 설정 페이지(options_page). 설명 + 사용자 옵션(분석 요소 상한/저장 다이얼로그/다크 팔레트 포함) + 문의 mailto. `chrome.storage.sync` 저장. **기본값 DEFAULT_OPTS는 popup.js와 동기 유지**
-- `manifest.json` — 개발용 manifest (tabs + host_permissions 포함, E2E 자동화용). action은 default_popup 없이 side_panel 사용. options_page + storage 권한. **optional_host_permissions**(배포에서 유지, 분석 버튼이 런타임 요청)
+- `src/popup.js` — 사이드패널 UI(ESM). 버튼(#analyze/#add)으로 현재 탭 분석·병합, 미리보기/DNA/린트/내보내기. 패널이라 안 닫힘 → analyses 메모리 유지. **배포는 host 권한 없음 → 분석 전 `ensureHostAccess()`가 `chrome.permissions.request`로 런타임 접근 획득**(버튼 클릭=제스처, 첫 await). 탭은 lastFocusedWindow 우선. `DesignGenerator`는 E2E용으로 `window`에 노출
+- `src/background.js` — service worker. 아이콘 클릭 시 사이드패널 열기 + hotreload(installType 게이트). 분석은 안 함(패널이 수행)
+- `src/options.html` / `src/options.js` — 설정 페이지(options_page, ESM). 설명 + 사용자 옵션(분석 요소 상한/저장 다이얼로그/다크 팔레트) + 커스텀 드롭다운 + 문의 mailto. `chrome.storage.sync` 저장. **기본값 DEFAULT_OPTS는 popup.js와 동기 유지**
+- `manifest.json` — 개발용 manifest (tabs + host_permissions 포함, E2E 자동화용). 경로는 `src/…`. side_panel + options_page + storage. **optional_host_permissions**(배포 유지, 분석 버튼이 런타임 요청)
 - `scripts/build.js` — 배포 빌드: tabs/host_permissions 제거 후 dist/release + zip 생성
 - `scripts/publish.js` — Chrome Web Store 업로드 (.env.publish의 OAuth 자격 증명 필요)
 - `test/e2e.js` — Playwright 기능 테스트 26항목. 확장 로드 → 픽스처 분석 → 문서 값 대조

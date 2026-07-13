@@ -116,12 +116,12 @@ const AZUKI_UI = {
   },
 };
 
-function AZUKI_T(lang) {
+export function AZUKI_T(lang) {
   return AZUKI_UI[lang === "ko" ? "ko" : "en"];
 }
 
 // 정적 [data-i18n*] 요소를 현재 언어로 채운다.
-function applyI18n(root, lang) {
+export function applyI18n(root, lang) {
   const t = AZUKI_T(lang);
   (root || document).querySelectorAll("[data-i18n]").forEach((el) => {
     const v = t[el.getAttribute("data-i18n")];

@@ -4,7 +4,7 @@
 // 직렬화되어 대상 페이지 컨텍스트에서 실행되므로, 외부 스코프를 참조하면 안 된다.
 // opts: 설정 페이지(options)에서 온 사용자 옵션. 인자 없이 호출되면 기본값 사용.
 
-function analyzePage(opts) {
+export function analyzePage(opts) {
   opts = opts || {};
   const MAX_ELEMENTS = opts.maxElements > 0 ? opts.maxElements : 4000;
 

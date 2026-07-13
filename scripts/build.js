@@ -15,10 +15,12 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(DIST, 'release');
 
-const FILES = ['popup.html', 'popup.js', 'analyzer.js', 'generator.js', 'background.js', 'options.html', 'options.js', 'i18n.js'];
+// 소스는 src/ 아래(ESM). 배포는 src/ 트리 통째로 복사.
+const SRC = path.join(ROOT, 'src');
+const KEY_FILES = ['src/popup.html', 'src/popup.js', 'src/analyzer.js', 'src/background.js', 'src/options.html', 'src/options.js', 'src/i18n.js', 'src/generator/index.js'];
 
-// 빌드 전 사전 검증 — 소스 파일 존재 확인(누락 시 조용히 깨진 빌드 방지)
-const missing = FILES.filter((f) => !fs.existsSync(path.join(ROOT, f)));
+// 빌드 전 사전 검증 — 핵심 소스 파일 존재 확인(누락 시 조용히 깨진 빌드 방지)
+const missing = KEY_FILES.filter((f) => !fs.existsSync(path.join(ROOT, f)));
 if (missing.length) throw new Error(`빌드 중단 — 소스 파일 누락: ${missing.join(', ')}`);
 
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -44,8 +46,8 @@ manifest.permissions = manifest.permissions.filter((p) => p !== 'tabs');
 delete manifest.host_permissions;
 fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
-// 소스 복사
-FILES.forEach((f) => fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f)));
+// 소스 복사 — src/ 트리 통째로
+fs.cpSync(SRC, path.join(OUT, 'src'), { recursive: true });
 fs.readdirSync(path.join(ROOT, 'icons')).forEach((f) =>
   fs.copyFileSync(path.join(ROOT, 'icons', f), path.join(OUT, 'icons', f))
 );
@@ -59,7 +61,7 @@ fs.cpSync(localesSrc, path.join(OUT, '_locales'), { recursive: true });
 if (manifest.permissions.includes('tabs') || 'host_permissions' in manifest) {
   throw new Error('빌드 중단 — 배포 manifest에 tabs/host_permissions가 남음');
 }
-const notCopied = FILES.filter((f) => !fs.existsSync(path.join(OUT, f)));
+const notCopied = KEY_FILES.filter((f) => !fs.existsSync(path.join(OUT, f)));
 if (notCopied.length) throw new Error(`빌드 중단 — 복사 실패: ${notCopied.join(', ')}`);
 if (!fs.existsSync(path.join(OUT, '_locales', manifest.default_locale, 'messages.json'))) {
   throw new Error(`빌드 중단 — default_locale(${manifest.default_locale}) messages.json 없음`);

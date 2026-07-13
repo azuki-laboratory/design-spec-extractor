@@ -37,12 +37,12 @@ async function main() {
   check('scripting 유지', manifest.permissions.includes('scripting'));
   check('sidePanel 유지', manifest.permissions.includes('sidePanel'));
   check('storage 유지', manifest.permissions.includes('storage'));
-  check('side_panel 경로 유지', manifest.side_panel && manifest.side_panel.default_path === 'popup.html');
-  check('options_page 유지', manifest.options_page === 'options.html');
+  check('side_panel 경로 유지', manifest.side_panel && manifest.side_panel.default_path === 'src/popup.html');
+  check('options_page 유지', manifest.options_page === 'src/options.html');
   check('background(service worker) 유지', !!(manifest.background && manifest.background.service_worker));
   check('default_locale 설정 (en)', manifest.default_locale === 'en');
   check('__MSG__ 현지화 참조 유지', String(manifest.description).startsWith('__MSG_') && String(manifest.action.default_title).startsWith('__MSG_'));
-  ['popup.html', 'popup.js', 'analyzer.js', 'generator.js', 'background.js', 'options.html', 'options.js', 'i18n.js', '_locales/en/messages.json', '_locales/ko/messages.json', 'icons/icon128.png'].forEach((f) =>
+  ['src/popup.html', 'src/popup.js', 'src/analyzer.js', 'src/generator/index.js', 'src/generator/core.js', 'src/background.js', 'src/options.html', 'src/options.js', 'src/i18n.js', '_locales/en/messages.json', '_locales/ko/messages.json', 'icons/icon128.png'].forEach((f) =>
     check(`파일 포함: ${f}`, fs.existsSync(path.join(OUT, f)))
   );
 
@@ -69,7 +69,7 @@ async function main() {
     await mgmt.close();
 
     const popup = await context.newPage();
-    await popup.goto(`chrome-extension://${ext.id}/popup.html`);
+    await popup.goto(`chrome-extension://${ext.id}/src/popup.html`);
     check('popup UI 렌더', await popup.isVisible('#analyze'));
     // 배포는 host_permissions 없음 → 분석 버튼이 permissions.request로 접근을 얻는다(런타임 팝업).
     // 실제 권한 승인 흐름은 헤드리스에서 재현 불가하므로 수동 1회 확인(README "배포" 참고).

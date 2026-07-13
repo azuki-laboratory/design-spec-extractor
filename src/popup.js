@@ -3,6 +3,13 @@
 // 배포 빌드는 host_permissions가 없으므로 분석 전 optional_host_permissions를 런타임 요청한다
 // (버튼 클릭=사용자 제스처라 permissions.request 허용). 개발 빌드는 host_permissions 선언으로 무프롬프트.
 
+import { DesignGenerator } from './generator/index.js';
+import { AZUKI_T, applyI18n } from './i18n.js';
+import { analyzePage } from './analyzer.js';
+
+// E2E 검증용 전역 노출(모듈 스코프라 window에 명시 노출)
+window.DesignGenerator = DesignGenerator;
+
 const $ = (id) => document.getElementById(id);
 let analyses = [];      // 누적된 페이지별 분석 결과
 let outputs = {};       // 버튼 id -> 생성된 문자열 (현재 분석 기준)

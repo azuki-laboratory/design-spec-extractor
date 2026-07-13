@@ -1,6 +1,8 @@
 // options.js — 설정 페이지 로직. chrome.storage.sync에 사용자 옵션 저장/복원.
 // 기본값은 popup.js의 DEFAULT_OPTS와 동일하게 유지할 것. UI 문자열은 i18n.js.
 
+import { AZUKI_T, applyI18n } from './i18n.js';
+
 const DEFAULT_OPTS = { lang: 'en', maxElements: 4000, saveAsDialog: true, includeDarkPalette: true };
 const CONTACT_EMAIL = 'lab.azukki@gmail.com';
 

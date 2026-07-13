@@ -77,7 +77,7 @@ async function main() {
 
     /* 5. popup을 탭으로 열어 분석 실행 */
     const popup = await context.newPage();
-    await popup.goto(`chrome-extension://${extId}/popup.html`);
+    await popup.goto(`chrome-extension://${extId}/src/popup.html`);
     popup.on('console', (m) => console.log('[popup console]', m.type(), m.text()));
 
     // 기본 언어 = 영어. UI가 영문으로 적용되는지 확인.
