@@ -11,11 +11,6 @@
 [![README 한국어](https://img.shields.io/badge/README-%ED%95%9C%EA%B5%AD%EC%96%B4-2f6bff.svg)](README.md)
 [![README English](https://img.shields.io/badge/README-English-5b606e.svg)](README.en.md)
 
-<!-- TODO: 스토어 게시 후 YOUR_EXTENSION_ID를 실제 확장 ID로 교체 -->
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-설치하기-2f6bff.svg?logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID)
-
-> **데모:** `docs/assets/demo.gif` (제작 후 여기에 삽입) · **랜딩:** [GitHub Pages](https://azuki-laboratory.github.io/design-spec-extractor/)
-
 ## 생성되는 문서 구조 (DESIGN.md)
 
 1. **시각적 테마 및 분위기** — 다크/라이트 판별, 분위기 서술 + **디자인 DNA** 태그

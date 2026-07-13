@@ -11,11 +11,6 @@ A Chrome extension that analyzes the design of the web page you're viewing and a
 [![README English](https://img.shields.io/badge/README-English-2f6bff.svg)](README.en.md)
 [![README 한국어](https://img.shields.io/badge/README-%ED%95%9C%EA%B5%AD%EC%96%B4-5b606e.svg)](README.md)
 
-<!-- TODO: replace YOUR_EXTENSION_ID after publishing -->
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-2f6bff.svg?logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID)
-
-> **Demo:** `docs/assets/demo.gif` (add after recording) · **Landing:** [GitHub Pages](https://azuki-laboratory.github.io/design-spec-extractor/)
-
 ## Generated document (DESIGN.md)
 
 1. **Visual Theme & Atmosphere** — dark/light detection, mood description + **Design DNA** tags
