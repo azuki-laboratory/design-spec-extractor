@@ -80,27 +80,35 @@ test/                  e2e(Playwright) · fixture · release(배포 스모크)
 
 ## 데이터 흐름
 
-```
-[툴바 아이콘 클릭]
-      │  (background.js)
-      ▼
-[사이드패널 열림 = src/popup.html]
-      │  "이 페이지 분석하기" 클릭
-      ▼
-ensureHostAccess()  ── 배포: chrome.permissions.request(런타임 사이트 접근)
-      │
-      ▼
-chrome.scripting.executeScript({ func: analyzePage })   ← src/analyzer.js 주입
-      │  (대상 페이지 컨텍스트서 computed style·스타일시트·CSS변수 스캔)
-      ▼
-분석 JSON  ──►  DesignGenerator (src/generator/*)
-      │           core → doc/signature/exporters
-      ▼
-패널 렌더(미리보기·DNA·지문·마스코트) + 내보내기(md/css/json/tw/svg/png)
+```mermaid
+flowchart TD
+  user(["👤 사용자"]) -->|"툴바 아이콘"| bg["background.js<br/>(service worker)"]
+  bg -->|"사이드패널 열기"| panel["Side Panel<br/>popup.html · popup.js · popup.css"]
+  user -->|"이 페이지 분석 / ＋ 페이지 추가"| panel
+  panel -->|"ensureHostAccess()<br/>executeScript(analyzePage)"| az[["analyzer.js<br/>대상 페이지에 주입"]]
+  az -->|"분석 JSON"| core
+
+  subgraph GEN ["src/generator/ (ESM)"]
+    core["core.js<br/>state · 색상 · 토큰 · 스케일"]
+    doc["doc.js<br/>DESIGN.md (§1–11)"]
+    sig["signature.js<br/>DNA · 린트 · 마스코트 · 지문 · 여권"]
+    exp["exporters.js<br/>tokens · preview · tailwind · agent · merge"]
+    idx(["index.js<br/>DesignGenerator API"])
+    core --> doc --> idx
+    core --> sig --> idx
+    core --> exp --> idx
+  end
+
+  idx -->|"렌더 + 내보내기"| out["DESIGN.md · tokens.css/json<br/>tailwind · preview.html · passport.svg · png"]
+
+  store[("chrome.storage<br/>설정 · 세션")] -.-> panel
+  theme["ui/theme.css<br/>브랜드 토큰"] -.-> panel
+  i18n["i18n.js + _locales<br/>EN / KO"] -.-> panel
 ```
 
 - **다중 페이지**: 패널이 사이드패널이라 안 닫힘 → `analyses[]` 메모리 유지 → `merge()`로 병합 재생성.
 - **분석은 패널이 수행**(background는 패널 열기만). executeScript는 사용자 제스처(버튼) 직후.
+- **generator**: 신뢰불가 입력 → `exporters`가 `htmlEsc`+`cssSafe`로 산출물 살균.
 
 ## 모듈 책임
 
