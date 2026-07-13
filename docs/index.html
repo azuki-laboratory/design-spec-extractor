@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Azuki — Design Spec Extractor · 웹디자인을 AI 코딩용 DESIGN.md로</title>
+    <meta
+      name="description"
+      content="아무 웹사이트의 디자인을 DESIGN.md 스펙과 디자인 토큰으로. Cursor·Claude 등 AI 코딩 에이전트에 바로 붙여넣기. 색상·타이포·여백·컴포넌트·tokens.css/json·Tailwind를 한 번에."
+    />
+    <meta property="og:title" content="Azuki — Design Spec Extractor" />
+    <meta
+      property="og:description"
+      content="Turn any website's design into a DESIGN.md spec and design tokens for AI coding agents."
+    />
+    <meta property="og:type" content="website" />
+    <style>
+      :root {
+        --ink: #14161c;
+        --ink-mute: #5b606e;
+        --cream: #f6f3ec;
+        --paper: #ffffff;
+        --hairline: #e3ddd0;
+        --blue: #2f6bff;
+        --blue-deep: #1e4fd0;
+        --on-blue: #fff;
+        --r-c: 6px;
+        --r-p: 10px;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "Apple SD Gothic Neo", sans-serif;
+        background: var(--cream);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+      .wrap { max-width: 900px; margin: 0 auto; padding: 0 22px; }
+      a { color: var(--blue-deep); }
+      /* hero */
+      header { text-align: center; padding: 72px 0 40px; }
+      header img {
+        width: 88px; height: 88px; border-radius: 18px;
+        border: 1px solid var(--hairline); background: var(--paper);
+      }
+      h1 { font-size: 34px; letter-spacing: -0.5px; margin: 20px 0 8px; }
+      .tag { font-size: 17px; color: var(--ink-mute); max-width: 620px; margin: 0 auto; }
+      .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        text-decoration: none; font-weight: 700; font-size: 15px;
+        padding: 12px 22px; border-radius: var(--r-c);
+      }
+      .btn-primary { background: var(--blue); color: var(--on-blue); }
+      .btn-primary:hover { background: var(--blue-deep); }
+      .btn-ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--hairline); }
+      .btn-ghost:hover { border-color: var(--blue); }
+      .badges { margin-top: 18px; }
+      .badges img { height: 20px; margin: 0 3px; vertical-align: middle; }
+      /* demo */
+      .demo {
+        margin: 24px auto 8px; max-width: 760px; aspect-ratio: 16 / 9;
+        background: var(--ink); color: #e9e6dd; border-radius: var(--r-p);
+        display: flex; align-items: center; justify-content: center;
+        font-family: "SF Mono", Menlo, monospace; font-size: 13px; text-align: center; padding: 20px;
+      }
+      /* sections */
+      section { padding: 40px 0; }
+      h2 { font-size: 22px; letter-spacing: -0.3px; margin-bottom: 20px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+      .card {
+        background: var(--paper); border: 1px solid var(--hairline);
+        border-radius: var(--r-p); padding: 20px;
+      }
+      .card h3 { font-size: 15px; margin-bottom: 6px; }
+      .card p { font-size: 13.5px; color: var(--ink-mute); }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chips span {
+        font-size: 12px; font-weight: 600; background: var(--paper);
+        border: 1px solid var(--hairline); border-radius: var(--r-c); padding: 6px 12px;
+      }
+      footer {
+        border-top: 1px solid var(--hairline); text-align: center;
+        padding: 28px 0; color: var(--ink-mute); font-size: 13px; margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <img src="icon128.png" alt="Azuki" />
+        <h1>Azuki — Design Spec Extractor</h1>
+        <p class="tag">
+          아무 웹사이트의 디자인을 <b>DESIGN.md</b> 스펙과 디자인 토큰으로.
+          Cursor·Claude 등 AI 코딩 에이전트에 바로 붙여넣으세요.
+        </p>
+        <div class="cta">
+          <!-- TODO: 스토어 게시 후 YOUR_EXTENSION_ID를 실제 확장 ID로 교체 -->
+          <a class="btn btn-primary" href="https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID">＋ Chrome에 추가</a>
+          <a class="btn btn-ghost" href="https://github.com/azuki-laboratory/design-spec-extractor">GitHub</a>
+        </div>
+        <p class="badges">
+          <img src="https://img.shields.io/badge/License-MIT-2f6bff.svg" alt="MIT" />
+          <img src="https://img.shields.io/badge/Chrome-MV3-14161c.svg" alt="MV3" />
+          <img src="https://img.shields.io/badge/i18n-EN%20%C2%B7%20KO-14161c.svg" alt="EN·KO" />
+        </p>
+        <!-- 데모 GIF 준비되면: <img class="demo" src="assets/demo.gif" alt="Azuki 데모"> 로 교체 -->
+        <div class="demo">데모 GIF 자리 — 클릭 → 분석 → DESIGN.md (assets/demo.gif)</div>
+      </div>
+    </header>
+
+    <section class="wrap">
+      <h2>무엇을 만들어 주나요</h2>
+      <div class="grid">
+        <div class="card"><h3>DESIGN.md</h3><p>색상·타이포·여백·컴포넌트·접근성을 담은 구조화 스펙(YAML 토큰 frontmatter).</p></div>
+        <div class="card"><h3>디자인 토큰</h3><p>tokens.css(CSS 변수) · tokens.json(W3C) · tailwind.config.js.</p></div>
+        <div class="card"><h3>에이전트 프롬프트</h3><p>토큰이 채워진 프롬프트를 Cursor·Claude에 바로 붙여넣기.</p></div>
+        <div class="card"><h3>디자인 여권 + 지문</h3><p>사이트 정체성 한 장 요약 SVG + 대조용 지문 코드.</p></div>
+        <div class="card"><h3>디자인 린트</h3><p>페이지가 자기 토큰을 어기는 지점(대비·그리드·반경) 진단.</p></div>
+        <div class="card"><h3>다중 페이지 병합</h3><p>여러 페이지를 하나의 디자인 스펙으로 합치기.</p></div>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <h2>이럴 때 좋아요</h2>
+      <div class="chips">
+        <span>기존 사이트 톤 맞춘 UI 제작</span>
+        <span>AI 코딩에 디자인 맥락 주입</span>
+        <span>디자인 시스템 감사</span>
+        <span>스타일 마이그레이션</span>
+        <span>Figma/Tailwind 토큰 추출</span>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <h2>개인정보</h2>
+      <p style="color: var(--ink-mute); font-size: 14px">
+        데이터 수집·전송·판매 없음. 모든 분석은 브라우저 안에서 로컬로 실행되며,
+        네트워크 요청을 하지 않습니다. 오픈소스(MIT).
+      </p>
+    </section>
+
+    <footer>
+      🫘 Azuki Lab ·
+      <a href="https://github.com/azuki-laboratory/design-spec-extractor">GitHub</a> ·
+      <a href="mailto:lab.azukki@gmail.com">문의</a>
+    </footer>
+  </body>
+</html>

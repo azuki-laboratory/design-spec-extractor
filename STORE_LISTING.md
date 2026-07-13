@@ -59,6 +59,57 @@
 
 ---
 
+## 5-1. SEO 최적화 리스팅 카피 (대시보드 입력용)
+
+> 스토어 검색 가중치: **제목 > 짧은 설명 첫 2줄 > 상세 설명**. 타겟 키워드를 자연스럽게 넣되 반복 남용 금지(심사 감점).
+
+### 타겟 키워드
+`design tokens` · `DESIGN.md` · `AI coding` · `Cursor` · `Claude` · `design system` · `CSS extractor` · `Figma tokens` · `tailwind config` · `design spec`
+
+### 제목 (권장, ≤45자 안전)
+- **EN:** `Azuki — Design to DESIGN.md · Tokens for AI Coding`
+- **KO:** `Azuki — 웹디자인 → DESIGN.md · AI 코딩용 토큰`
+
+### 짧은 요약 (첫 2줄 = 검색 스니펫, 가장 중요)
+- **EN:** `Turn any website's design into a DESIGN.md spec and design tokens — ready to paste into Cursor, Claude, and AI coding agents. Colors, typography, spacing, components, tokens.css/json, Tailwind config in one click.`
+- **KO:** `아무 웹사이트의 디자인을 DESIGN.md 스펙과 디자인 토큰으로. Cursor·Claude 등 AI 코딩 에이전트에 바로 붙여넣기. 색상·타이포·여백·컴포넌트·tokens.css/json·Tailwind 설정을 한 번에.`
+
+### 상세 설명 (EN)
+```
+Azuki extracts a live website's design system and turns it into an agent-ready spec.
+
+Click the toolbar icon, hit Analyze, and get:
+• DESIGN.md — a structured design spec (colors, typography, spacing, components, accessibility) with YAML token frontmatter
+• Design tokens — tokens.css (CSS variables), tokens.json (W3C Design Tokens), tailwind.config.js
+• Agent prompt — token-filled prompt to paste straight into Cursor / Claude / Copilot
+• Design Passport — a one-card visual identity summary + fingerprint code
+• preview.html & screenshot — verify what was extracted
+
+Great for: shipping UI that matches an existing site, feeding design context to AI coding agents, auditing a design system, migrating styles.
+
+Privacy: no data collected, no network requests — everything runs locally in your browser.
+Open source (MIT): github.com/azuki-laboratory/design-spec-extractor
+```
+
+### 상세 설명 (KO)
+```
+Azuki는 살아있는 웹사이트의 디자인 시스템을 추출해 에이전트가 바로 쓰는 스펙으로 만듭니다.
+
+툴바 아이콘 클릭 → 분석 → 결과:
+• DESIGN.md — 색상·타이포·여백·컴포넌트·접근성을 담은 구조화 디자인 스펙(YAML 토큰 frontmatter 포함)
+• 디자인 토큰 — tokens.css(CSS 변수), tokens.json(W3C Design Tokens), tailwind.config.js
+• 에이전트 프롬프트 — Cursor·Claude·Copilot에 바로 붙여넣는 토큰 프롬프트
+• 디자인 여권 — 사이트 정체성 한 장 요약 + 지문 코드
+• preview.html·스크린샷 — 추출 결과 육안 검증
+
+이럴 때: 기존 사이트와 톤을 맞춘 UI 제작, AI 코딩에 디자인 맥락 주입, 디자인 시스템 감사, 스타일 마이그레이션.
+
+개인정보: 데이터 미수집·네트워크 요청 없음 — 모두 브라우저 로컬 처리.
+오픈소스(MIT): github.com/azuki-laboratory/design-spec-extractor
+```
+
+---
+
 ## 6. 스크린샷 / 등록정보 자산 (수동 준비 필요)
 
 스토어 요구 규격 — 직접 캡처·업로드:
