@@ -6,130 +6,151 @@
 [![Chrome Extension](https://img.shields.io/badge/Chrome-MV3-14161c.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 ![Lang](https://img.shields.io/badge/i18n-EN%20%C2%B7%20KO-14161c.svg)
 
-**GitHub:** https://github.com/azuki-laboratory/design-spec-extractor
+**GitHub:** https://github.com/azuki-laboratory/design-spec-extractor · **English:** [README.en.md](README.en.md)
 
-## 생성되는 문서 구조
+## 생성되는 문서 구조 (DESIGN.md)
 
 1. **시각적 테마 및 분위기** — 다크/라이트 판별, 분위기 서술 + **디자인 DNA** 태그
-2. **컬러 팔레트 및 역할** — Background / Text / Primary / Accent / Border 역할 자동 배정, 사이트의 CSS 커스텀 프로퍼티(원본 토큰)도 함께 추출
+2. **컬러 팔레트 및 역할** — Background / Text / Primary / Accent / Border 역할 자동 배정 + 사이트 CSS 커스텀 프로퍼티(원본 토큰) 추출
 3. **타이포그래피 규칙** — 폰트 패밀리, H1~H6 스펙, 타입 스케일, 굵기
-4. **컴포넌트 스타일링** — 버튼(Primary/Secondary 클러스터링), 입력창, 카드, 내비, **배지/태그·폼 컨트롤·테이블** + 스타일시트 `:hover`/`:focus` 상태 규칙
-5. **레이아웃 원칙** — 실사용 여백 스케일, gap, flex/grid 비중, 중앙 컨테이너 max-width
-6. **깊이감 및 고도** — 그림자 elevation, 반경·**테두리 두께**·**불투명도** 스케일, z-index, **모션**(전환·이징·애니메이션)
-7. **Do's and Don'ts** — 추출된 토큰 기반 가드레일 자동 생성
-8. **반응형 동작** — 미디어쿼리 브레이크포인트, 모바일 전략 제안
-9. **에이전트 프롬프트 가이드** — 실제 토큰 값이 채워진, AI에게 바로 붙여넣을 프롬프트 셋
-10. **디자인 린트** — 페이지가 자기 토큰을 어기는 지점 진단(대비·그리드 이탈·반경 이탈 등)
+4. **컴포넌트 스타일링** — 버튼(Primary/Secondary 클러스터링), 입력창, 카드, 내비, **배지/태그·폼 컨트롤·테이블** + `:hover`/`:focus` 규칙
+5. **레이아웃 원칙** — 여백 스케일, gap, flex/grid 비중, 중앙 컨테이너 max-width
+6. **깊이감 및 고도** — 그림자 elevation, 반경·테두리 두께·불투명도 스케일, z-index, 모션(전환·이징·애니메이션)
+7. **Do's and Don'ts** — 추출 토큰 기반 가드레일 자동 생성
+8. **반응형 동작** — 브레이크포인트, 모바일 전략
+9. **에이전트 프롬프트 가이드** — 토큰 값이 채워진, AI에 바로 붙여넣을 프롬프트 셋
+10. **디자인 린트** — 페이지가 자기 토큰을 어기는 지점 진단(대비·그리드 이탈·반경 이탈)
 11. **접근성 & 자산** — 제목 순서·이미지 alt 커버리지·랜드마크·인라인 SVG 아이콘
 
 ## 시그니처 기능
 
 - **디자인 여권(passport.svg)** + **지문 코드**(`AZ-XXXX-XXXX`) — 사이트 디자인 정체성 한 장 요약·대조
-- **에이전트 프롬프트 복사** — 토큰이 채워진 프롬프트를 클립보드로 바로
+- **에이전트 프롬프트 복사** — 토큰이 채워진 프롬프트를 클립보드로
 - **다중 페이지 병합** — 여러 페이지를 하나의 스펙으로
-- **내보내기** — DESIGN.md · tokens.css · tokens.json · tailwind.config.js · preview.html · screenshot
-- **다국어(EN/KO)** — UI·생성문서 전환, manifest는 chrome.i18n 현지화
+- **내보내기** — DESIGN.md · tokens.css · tokens.json · tailwind.config.js · preview.html · passport.svg · screenshot
+- **다국어(EN/KO)** — UI·생성문서 토글 + manifest는 chrome.i18n 현지화
 
 ## 설치 (개발자 모드)
 
-1. Chrome에서 `chrome://extensions` 접속
-2. 우측 상단 **개발자 모드** 켜기
-3. **압축해제된 확장 프로그램을 로드합니다** 클릭 → 이 폴더 선택
+1. `chrome://extensions` 접속 → 우측 상단 **개발자 모드** 켜기
+2. **압축해제된 확장 프로그램을 로드** 클릭 → 이 저장소 폴더 선택
 
 ## 사용법
 
-1. 분석하고 싶은 사이트를 연다
-2. 툴바에서 확장 아이콘 클릭 → **이 페이지 분석하기**
-3. (선택) 다른 페이지로 이동 후 **＋ 페이지 추가** — 여러 페이지를 병합 분석해 컴포넌트 커버리지 확대
-4. 미리보기 확인 후 다운로드:
-   - **DESIGN.md** — AI 에이전트용 디자인 문서 (YAML frontmatter 토큰 + 9섹션)
-   - **tokens.css** — `:root` CSS 커스텀 프로퍼티. 사이트가 다크모드를 정의하면 `prefers-color-scheme: dark` 블록 포함
-   - **tokens.json** — W3C Design Tokens 포맷 — Style Dictionary·Figma Tokens 호환
-   - **preview.html** — 추출 토큰으로 재구성한 스타일 카탈로그 (추출 정확도 육안 검증용)
-   - **screenshot.png** — 분석 대상 페이지 캡처 (AI에게 시각 근거 제공)
+1. 툴바 **Azuki 아이콘** 클릭 → 사이드패널 열림
+2. **이 페이지 분석하기** (배포 빌드는 최초 1회 사이트 접근 허용 팝업)
+3. (선택) 다른 페이지로 이동 → **＋ 페이지 추가** 로 병합
+4. 미리보기 확인 후 내보내기(복사/다운로드)
 
-추출 범위: 색상·그라디언트, 다크모드 팔레트(`prefers-color-scheme` 변수 재정의), 타이포, 버튼/입력창/카드/내비게이션, `:hover`/`:focus`(스타일시트) + JS 구동 hover(이벤트 시뮬레이션), 여백/반경/그림자 스케일, 브레이크포인트.
+---
 
-## 구조
+# 아키텍처 설계서
 
-| 파일 | 역할 |
+## 설계 원칙
+
+| 원칙 | 이유 |
 |------|------|
-| `manifest.json` | MV3 매니페스트 (`activeTab`, `tabs`, `scripting`, `downloads` + host_permissions) |
-| `analyzer.js` | 페이지에 주입되는 자기완결 분석 함수 — computed style, 스타일시트, CSS 변수 수집 |
-| `generator.js` | 분석 JSON → DESIGN.md 마크다운 변환 (역할 추론, 대비 계산, 프롬프트 생성) |
-| `popup.html/js` | 팝업 UI — 실행, 미리보기, 복사/다운로드 |
-| `test/e2e.js` | Playwright E2E — 확장 로드부터 DESIGN.md 검증까지 자동화 |
-| `test/fixture.html` | 알려진 디자인 값으로 구성된 테스트 페이지 |
+| **번들러 없음 · 네이티브 ESM** | MV3 확장 페이지·모듈 SW는 `import/export` 네이티브 지원. 빌드 스텝 없이 소스 = 배포. |
+| **로직 파일 개발·배포 공용** | 빌드별 분기 코드 금지. 권한 차이는 manifest에서만(build.js가 축소). |
+| **최소 설치 권한** | 배포는 `host_permissions` 없이 설치 → "모든 사이트 읽기" 경고 회피. 사이트 접근은 분석 시 런타임 요청. |
+| **신뢰 불가 입력 가정** | 분석 대상은 악성 가능 → 생성물(preview.html/passport)에 삽입되는 페이지 값은 전부 살균. |
 
-## 테스트 (E2E 자동화)
+## 파일 구조
 
-```bash
-npm install        # playwright 설치
-npm test           # 확장 로드 → 분석 → 26개 항목 검증
-HEADFUL=1 npm test # 브라우저 창 보면서 실행
+```
+manifest.json          MV3 매니페스트 (경로는 src/…, 개발용 넓은 권한)
+_locales/en·ko/        chrome.i18n — manifest 문자열 현지화(name/description/tooltip)
+icons/                 확장 아이콘 + 마스코트 원화
+src/
+  analyzer.js          [주입] 페이지 컨텍스트서 실행되는 자기완결 분석 함수
+  background.js        [SW] 아이콘 클릭 → 사이드패널 열기 + 개발 hotreload
+  popup.html/.js/.css  [패널] 분석 실행·미리보기·내보내기 UI
+  options.html/.js/.css[설정] 옵션·언어·문의
+  i18n.js              런타임 UI 문자열(en/ko) + 적용 헬퍼
+  ui/theme.css         공용 브랜드 토큰(:root)·리셋 (BRAND.md 단일 출처)
+  generator/           분석 JSON → 문서/토큰/시그니처 (ESM 모듈)
+    core.js            공유 state·색상/토큰/스케일/무드/frontmatter 엔진
+    doc.js             generate() — DESIGN.md 조립(섹션 1~11)
+    signature.js       computeDNA·computeLint·mascotComment·designFingerprint·exportPassport
+    exporters.js       exportTokens/Preview/Tailwind/AgentPrompt · merge(멀티페이지)
+    index.js           DesignGenerator 공개 API 조립
+scripts/               build(배포) · check(문법린트) · publish · icons
+test/                  e2e(Playwright) · fixture · release(배포 스모크)
 ```
 
-동작 방식: Playwright `launchPersistentContext`에 `--load-extension`으로 확장을 로드하고,
-로컬 서버로 `test/fixture.html`(알려진 색상·폰트·브레이크포인트)을 띄운 뒤,
-`chrome-extension://<ID>/popup.html`을 탭으로 열어 분석 버튼을 클릭한다.
-생성된 DESIGN.md가 픽스처의 실제 값(Primary `#e11d48`, Georgia, 768px 브레이크포인트 등)과
-일치하는지 26개 항목을 검증한다. 결과 문서는 `test/output-DESIGN.md`에 저장된다.
+## 데이터 흐름
 
-## 배포 (스토어용 빌드)
-
-소스 manifest는 E2E 테스트용 넓은 권한(`tabs`, `host_permissions`)을 갖는다.
-배포 빌드는 이를 제거하고 `activeTab`만 남긴다 — "모든 사이트 데이터 읽기" 경고 없음.
-
-```bash
-npm run build         # dist/release/ + dist/azuki-v1.0.0.zip 생성
-npm run test:release  # 배포 빌드 스모크 테스트 (권한 축소·로드·UI·권한 게이트 검증)
+```
+[툴바 아이콘 클릭]
+      │  (background.js)
+      ▼
+[사이드패널 열림 = src/popup.html]
+      │  "이 페이지 분석하기" 클릭
+      ▼
+ensureHostAccess()  ── 배포: chrome.permissions.request(런타임 사이트 접근)
+      │
+      ▼
+chrome.scripting.executeScript({ func: analyzePage })   ← src/analyzer.js 주입
+      │  (대상 페이지 컨텍스트서 computed style·스타일시트·CSS변수 스캔)
+      ▼
+분석 JSON  ──►  DesignGenerator (src/generator/*)
+      │           core → doc/signature/exporters
+      ▼
+패널 렌더(미리보기·DNA·지문·마스코트) + 내보내기(md/css/json/tw/svg/png)
 ```
 
-배포 전 수동 확인 1회 필요 (activeTab은 실제 아이콘 클릭 제스처가 필요해 자동화 불가):
-`chrome://extensions`에서 `dist/release/` 로드 → 아무 사이트에서 아이콘 클릭 → 분석 정상 동작 확인.
-이후 zip을 Chrome Web Store 개발자 대시보드에 업로드.
+- **다중 페이지**: 패널이 사이드패널이라 안 닫힘 → `analyses[]` 메모리 유지 → `merge()`로 병합 재생성.
+- **분석은 패널이 수행**(background는 패널 열기만). executeScript는 사용자 제스처(버튼) 직후.
 
-| 구분 | 위치 | 권한 | 용도 |
-|------|------|------|------|
-| 개발 | 저장소 루트 | activeTab + tabs + host_permissions | `npm test` E2E 자동화 |
-| 배포 | `dist/release/` | activeTab만 | 스토어 업로드, 실사용 |
+## 모듈 책임
 
-## 배포 자동화 (업데이트 업로드)
+| 모듈 | 책임 | 핵심 제약 |
+|------|------|-----------|
+| `analyzer.js` | 페이지 디자인 값 수집 → JSON | **자기완결 필수** — `executeScript`가 함수를 직렬화하므로 외부 스코프·import 참조 시 런타임 에러 |
+| `generator/core.js` | 공유 상태·색상 수학·토큰 빌더·스케일 검출 | `state.LANG`·`T(en,ko)`로 다국어, 색상토큰 LANG별 메모 |
+| `generator/doc.js` | DESIGN.md 마크다운 조립 | `core` + `signature` 소비 |
+| `generator/signature.js` | Azuki 시그니처(DNA/린트/마스코트/지문/여권) | 지문은 결정적 해시(같은 사이트 동일) |
+| `generator/exporters.js` | 토큰/미리보기/tailwind/에이전트 프롬프트·병합 | **보안 살균**: `htmlEsc`+`cssSafe`로 preview.html XSS 차단 |
+| `popup.js` | 분석 트리거·렌더·내보내기 | 배포 host 권한 없음 → `ensureHostAccess()` 선행 |
+| `background.js` | 패널 열기 + hotreload | 분석 안 함 |
 
-최초 등록 후에는 `npm run publish` 한 줄로 빌드 → 스토어 업로드 → 심사 제출까지 자동.
+## 국제화 (2계층)
 
-**최초 1회 설정:**
+| 계층 | 대상 | 메커니즘 | 언어 결정 |
+|------|------|----------|-----------|
+| 런타임 | 패널·설정 UI·생성 문서 | `i18n.js`(`AZUKI_UI`) + generator `T()` | **사용자 토글**(storage.sync.lang) |
+| manifest | 확장명·설명·툴팁 | chrome.i18n + `_locales` + `__MSG__` | **브라우저 UI 언어** |
 
-1. **개발자 계정**: https://chrome.google.com/webstore/devconsole 에서 등록 (일회성 $5)
-2. **첫 업로드(수동)**: 대시보드 → 새 항목 → `dist/*.zip` 업로드 → 스토어 등록정보
-   (설명, 스크린샷 1280×800 최소 1장, 카테고리, 개인정보 처리방침) 작성 → 심사 제출.
-   생성된 32자 확장 ID 기록
-3. **OAuth 자격 증명**:
-   - https://console.cloud.google.com 에서 프로젝트 생성 → "Chrome Web Store API" 사용 설정
-   - OAuth 동의 화면 구성(내부/테스트) → 사용자 인증 정보 → OAuth 클라이언트 ID(데스크톱 앱) 생성
-   - refresh token 발급: https://github.com/fregante/chrome-webstore-upload-keys 의 안내 도구 사용이 가장 간단
-4. 프로젝트 루트에 `.env.publish` 작성 (`.gitignore`에 이미 등록됨):
-   ```
-   EXTENSION_ID=<32자 ID>
-   CLIENT_ID=<xxx.apps.googleusercontent.com>
-   CLIENT_SECRET=<...>
-   REFRESH_TOKEN=<...>
-   ```
+## 권한
 
-**이후 매 릴리스:**
+| 권한 | 사유 |
+|------|------|
+| `activeTab` + `scripting` | 아이콘/버튼 제스처로 현재 탭에 분석 함수 주입 |
+| `downloads` | 산출물 파일 저장 |
+| `sidePanel` | 결과 UI 사이드패널 |
+| `storage` | 사용자 설정·세션 결과 로컬 저장(외부 전송 없음) |
+| `optional_host_permissions` | 임의 사이트 스타일 읽기 — 설치 시 아닌 **분석 버튼 클릭 시 런타임 요청** |
+
+> `tabs`·`host_permissions`는 개발/E2E 전용 → `scripts/build.js`가 배포 빌드에서 제거.
+
+## 빌드 · 테스트 · 버전
 
 ```bash
-# manifest.json의 version 올리기 (스토어는 동일 버전 재업로드 거부)
-npm test && npm run test:release   # 검증
-npm run publish                    # 빌드 + 업로드 + 심사 제출
-npm run publish -- --upload-only   # 업로드만 하고 게시는 대시보드에서 하고 싶을 때
+npm run lint          # 전 소스 문법 검사 (ESM/CJS 구분)
+npm test              # 기능 E2E (Playwright) — analyzer/generator/popup 수정 후 필수
+npm run build         # dist/release/ + dist/azuki-v<버전>.zip
+npm run test:release  # 배포 빌드 스모크
+npm run verify        # 위 전부 한 번에 (전체 게이트)
+npm run publish       # 스토어 업로드+제출 (사람 확인 없이 금지)
 ```
 
-자동화 한계: 신규 아이템 생성, 스토어 등록정보·스크린샷, 심사 승인 자체는 API 미지원 — 심사는 제출만 가능하고 통과는 Google 몫 (보통 1~3일).
+**버전 규칙(MAJOR.MINOR.PATCH)** — MAJOR: 주요 로직·구조 변경 / MINOR: 기능 추가·수정 / PATCH: 문구·미세 UI. manifest·package 동기.
+
+**배포 검증**: E2E는 개발 manifest(넓은 권한)로 픽스처 분석 후 결과값 대조. 실제 아이콘 클릭 제스처는 자동화 불가 → 배포 zip 1회 수동 확인 후 업로드.
 
 ## 알려진 제약
 
-- **교차 출처 CSS**: 다른 도메인의 스타일시트는 CORS로 인해 `:hover`/미디어쿼리 추출이 불가할 수 있습니다 (computed style 기반 분석은 정상 동작).
-- **Primary/Secondary 판별**은 채도·빈도 기반 휴리스틱이므로 검수를 권장합니다.
-- 성능을 위해 최대 4,000개 요소까지만 스캔합니다.
-- `chrome://` 등 브라우저 내부 페이지에서는 동작하지 않습니다.
+- **교차 출처 CSS**: 다른 도메인 스타일시트는 CORS로 `:hover`/미디어쿼리 추출 제한(computed style 분석은 정상).
+- **Primary/Secondary 판별**은 채도·빈도 휴리스틱 → 검수 권장.
+- 성능상 요소 스캔 상한(기본 4,000, 설정에서 조정).
+- `chrome://` 등 내부 페이지 미동작.
