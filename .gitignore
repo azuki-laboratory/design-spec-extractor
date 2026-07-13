@@ -4,3 +4,5 @@ dist/
 test/output-*
 .DS_Store
 .claude/settings.local.json
+MARKETING.md
+STORE_LISTING.md
