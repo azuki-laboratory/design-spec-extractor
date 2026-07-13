@@ -56,7 +56,7 @@
 | **번들러 없음 · 네이티브 ESM** | MV3 확장 페이지·모듈 SW는 `import/export` 네이티브 지원. 빌드 스텝 없이 소스 = 배포. |
 | **로직 파일 개발·배포 공용** | 빌드별 분기 코드 금지. 권한 차이는 manifest에서만(build.js가 축소). |
 | **최소 설치 권한** | 배포는 `host_permissions` 없이 설치 → "모든 사이트 읽기" 경고 회피. 사이트 접근은 분석 시 런타임 요청. |
-| **신뢰 불가 입력 가정** | 분석 대상은 악성 가능 → 생성물(preview.html/passport)에 삽입되는 페이지 값은 전부 살균. |
+| **신뢰 불가 입력 가정** | 분석 대상은 악성 가능 → 생성물(preview.html/passport)에 삽입되는 페이지 값은 전부 이스케이프·정제. |
 
 ## 파일 구조
 
@@ -111,7 +111,7 @@ flowchart TD
 
 - **다중 페이지**: 패널이 사이드패널이라 안 닫힘 → `analyses[]` 메모리 유지 → `merge()`로 병합 재생성.
 - **분석은 패널이 수행**(background는 패널 열기만). executeScript는 사용자 제스처(버튼) 직후.
-- **generator**: 신뢰불가 입력 → `exporters`가 `htmlEsc`+`cssSafe`로 산출물 살균.
+- **generator**: 신뢰불가 입력 → `exporters`가 `htmlEsc`+`cssSafe`로 산출물 이스케이프·정제.
 
 ## 모듈 책임
 
@@ -121,7 +121,7 @@ flowchart TD
 | `generator/core.js` | 공유 상태·색상 수학·토큰 빌더·스케일 검출 | `state.LANG`·`T(en,ko)`로 다국어, 색상토큰 LANG별 메모 |
 | `generator/doc.js` | DESIGN.md 마크다운 조립 | `core` + `signature` 소비 |
 | `generator/signature.js` | Azuki 시그니처(DNA/린트/마스코트/지문/여권) | 지문은 결정적 해시(같은 사이트 동일) |
-| `generator/exporters.js` | 토큰/미리보기/tailwind/에이전트 프롬프트·병합 | **보안 살균**: `htmlEsc`+`cssSafe`로 preview.html XSS 차단 |
+| `generator/exporters.js` | 토큰/미리보기/tailwind/에이전트 프롬프트·병합 | **보안 정제**: `htmlEsc`+`cssSafe`로 preview.html XSS 차단 |
 | `popup.js` | 분석 트리거·렌더·내보내기 | 배포 host 권한 없음 → `ensureHostAccess()` 선행 |
 | `background.js` | 패널 열기 + hotreload | 분석 안 함 |
 
