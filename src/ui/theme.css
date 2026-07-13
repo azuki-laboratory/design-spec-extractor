@@ -1,0 +1,24 @@
+/* ui/theme.css — Azuki 공용 디자인 토큰 + 기본 (BRAND.md 단일 출처)
+   popup·options 공통. 페이지 전용 스타일은 popup.css / options.css. */
+:root {
+  --azuki-ink: #14161c;
+  --azuki-ink-mute: #5b606e;
+  --azuki-cream: #f6f3ec;
+  --azuki-paper: #ffffff;
+  --azuki-hairline: #e3ddd0;
+  --azuki-blue: #2f6bff;
+  --azuki-blue-deep: #1e4fd0;
+  --azuki-blue-soft: #6fa8ff;
+  --azuki-on-blue: #ffffff;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+button:focus-visible {
+  outline: 2px solid var(--azuki-blue-soft);
+  outline-offset: 1px;
+}
