@@ -122,6 +122,7 @@ async function main() {
     check('버튼 반경 10px', md.includes('border-radius: 10px'));
     check('카드 감지 (반경 14px)', md.includes('14px'));
     check('입력창 감지', md.includes('입력창'));
+    check('컴포넌트 일관성 지표', /일관성.*감지, 스타일 \d+종/.test(md));
     check(':hover 규칙 추출', md.includes(':hover'));
     check('브레이크포인트 768px', /\|\s*768px\s*\|/.test(md));
     check('브레이크포인트 480px', /\|\s*480px\s*\|/.test(md));

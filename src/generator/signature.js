@@ -63,6 +63,20 @@ export function computeLint(data, lang) {
   const oddR = [...new Set(compRadii)].filter((px) => px > 0 && px < 999 && !scalePx.some((r) => Math.abs(r - px) <= 1));
   if (oddR.length) issues.push({ level: 'info', msg: T(`Radius outside scale: ${oddR.map((v) => v + 'px').join(', ')}`, `반경 스케일 이탈: ${oddR.map((v) => v + 'px').join(', ')}`) });
 
+  // 컴포넌트 스타일 파편화 (같은 종류인데 스타일 변형 과다 → 일관성 붕괴)
+  const cons = data.components.consistency || {};
+  [['buttons', T('buttons', '버튼')], ['cards', T('cards', '카드')], ['inputs', T('inputs', '입력창')], ['badges', T('badges', '배지')]]
+    .forEach(([k, label]) => {
+      const c = cons[k];
+      if (!c || c.total < 5) return; // 표본 적으면 판단 유보
+      const cov = c.topCount / c.total;
+      if (c.variants >= 4 && cov < 0.5) {
+        issues.push({ level: 'warn', msg: T(`Fragmented ${label} styles: ${c.variants} variants across ${c.total} (top style covers only ${Math.round(cov * 100)}%)`, `${label} 스타일 파편화: ${c.total}개에 변형 ${c.variants}종 (최다 스타일 커버 ${Math.round(cov * 100)}%뿐)`) });
+      } else if (c.variants >= 3 && cov < 0.7) {
+        issues.push({ level: 'info', msg: T(`${label} styles could consolidate: ${c.variants} variants (top ${Math.round(cov * 100)}%)`, `${label} 스타일 정리 여지: 변형 ${c.variants}종 (최다 ${Math.round(cov * 100)}%)`) });
+      }
+    });
+
   // 타입/굵기 과다
   const nSizes = (data.typography.sizes || []).length;
   if (nSizes > 7) issues.push({ level: 'info', msg: T(`Many font sizes (${nSizes}) — consider consolidating`, `폰트 크기 과다 (${nSizes}종) — 정리 고려`) });
