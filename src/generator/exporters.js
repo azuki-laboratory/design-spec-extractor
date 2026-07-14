@@ -202,6 +202,19 @@ export function merge(analyses) {
           accent: (fcs.find((f) => f.accent) || {}).accent || null,
         };
       })(),
+      // 일관성 지표 병합: 감지·최다 커버 수는 합산, 변형 수는 페이지 간 최대(근사)
+      consistency: (() => {
+        const out = {};
+        ['buttons', 'cards', 'inputs', 'badges'].forEach((k) => {
+          const cs = analyses.map((a) => a.components.consistency?.[k]).filter(Boolean);
+          out[k] = cs.length ? {
+            total: cs.reduce((s, c) => s + c.total, 0),
+            variants: Math.max(...cs.map((c) => c.variants)),
+            topCount: cs.reduce((s, c) => s + c.topCount, 0),
+          } : null;
+        });
+        return out;
+      })(),
       linkUnderline: pick('linkUnderline'),
       hoverRules: dedupeRules('hoverRules', 20),
       focusRules: dedupeRules('focusRules', 10),

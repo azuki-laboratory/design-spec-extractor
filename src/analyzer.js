@@ -9,13 +9,63 @@ export function analyzePage(opts) {
   const MAX_ELEMENTS = opts.maxElements > 0 ? opts.maxElements : 4000;
 
   /* ---------- 색상 유틸 ---------- */
+  function parseAlpha(raw) {
+    if (raw === undefined || raw === null || raw === '') return 1;
+    let a = parseFloat(raw);
+    if (String(raw).includes('%')) a /= 100;
+    return isNaN(a) ? 1 : a;
+  }
   function parseColor(str) {
     if (!str) return null;
-    const m = str.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/);
-    if (!m) return null;
-    let a = m[4] === undefined ? 1 : parseFloat(m[4]);
-    if (typeof m[4] === 'string' && m[4].includes('%')) a = a / 100;
-    return { r: +m[1], g: +m[2], b: +m[3], a };
+    str = str.trim();
+    if (str === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+    // rgb()/rgba() — 대부분의 computed value
+    let m = str.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/);
+    if (m) return { r: +m[1], g: +m[2], b: +m[3], a: parseAlpha(m[4]) };
+    // color(srgb r g b / a) — 광색역 지정 시 Chrome computed value (성분 0~1)
+    m = str.match(/^color\(srgb\s+([\d.-]+)\s+([\d.-]+)\s+([\d.-]+)(?:\s*\/\s*([\d.]+%?))?\s*\)/);
+    if (m) {
+      const c01 = (v) => Math.min(255, Math.max(0, parseFloat(v) * 255));
+      return { r: c01(m[1]), g: c01(m[2]), b: c01(m[3]), a: parseAlpha(m[4]) };
+    }
+    // oklch()/oklab() — sRGB 밖 색은 지정 그대로 직렬화됨. sRGB로 변환(클램프).
+    m = str.match(/^okl(ch|ab)\(\s*([\d.]+%?)\s+([\d.-]+%?)\s+([\d.-]+)(?:deg)?\s*(?:\/\s*([\d.]+%?))?\s*\)/);
+    if (m) {
+      const L = String(m[2]).includes('%') ? parseFloat(m[2]) / 100 : parseFloat(m[2]);
+      let A, B;
+      if (m[1] === 'ch') {
+        const C = String(m[3]).includes('%') ? parseFloat(m[3]) * 0.004 : parseFloat(m[3]);
+        const H = (parseFloat(m[4]) * Math.PI) / 180;
+        A = C * Math.cos(H); B = C * Math.sin(H);
+      } else {
+        A = String(m[3]).includes('%') ? parseFloat(m[3]) * 0.004 : parseFloat(m[3]);
+        B = String(m[4]).includes('%') ? parseFloat(m[4]) * 0.004 : parseFloat(m[4]);
+      }
+      // OKLab → linear sRGB (표준 행렬)
+      const l = Math.pow(L + 0.3963377774 * A + 0.2158037573 * B, 3);
+      const mm = Math.pow(L - 0.1055613458 * A - 0.0638541728 * B, 3);
+      const s = Math.pow(L - 0.0894841775 * A - 1.291485548 * B, 3);
+      const lin = [
+        4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s,
+      ].map((v) => {
+        v = Math.min(1, Math.max(0, v));
+        return Math.round((v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255);
+      });
+      return { r: lin[0], g: lin[1], b: lin[2], a: parseAlpha(m[5]) };
+    }
+    return null;
+  }
+  // fg(반투명)를 불투명 bg 위에 합성 — 화면에 실제 보이는 색
+  function composite(fg, bg) {
+    const a = fg.a;
+    return {
+      r: fg.r * a + bg.r * (1 - a),
+      g: fg.g * a + bg.g * (1 - a),
+      b: fg.b * a + bg.b * (1 - a),
+      a: 1,
+    };
   }
   function toHex(c) {
     const h = (n) => Math.round(n).toString(16).padStart(2, '0');
@@ -55,6 +105,20 @@ export function analyzePage(opts) {
   function topEntries(map, n = 10) {
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   }
+  // 근접 수치 병합 (15/16/17px → 16px) — 서브픽셀·반응형 노이즈로 인한 스케일 파편화 방지.
+  // count 내림차순으로 대표값을 고정하고, 허용 오차 내 값을 흡수한다.
+  function snapScale(map, tol = 1) {
+    const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    const out = new Map();
+    for (const [v, n] of entries) {
+      let rep = null;
+      for (const k of out.keys()) {
+        if (Math.abs(k - v) <= tol) { rep = k; break; }
+      }
+      out.set(rep === null ? v : rep, (out.get(rep === null ? v : rep) || 0) + n);
+    }
+    return out;
+  }
   function visible(el) {
     const r = el.getBoundingClientRect();
     return r.width > 2 && r.height > 2;
@@ -88,39 +152,65 @@ export function analyzePage(opts) {
   const easings = new Map();      // transition-timing-function -> count
   const animations = new Map();   // animation-name -> count
 
+  // 요소 뒤에 실제로 깔린 불투명 배경색 (조상 체인 합성, 요소별 캐시)
+  const bgCache = new Map();
+  function resolvedBg(el) {
+    if (!el || el.nodeType !== 1) return { r: 255, g: 255, b: 255, a: 1 };
+    if (bgCache.has(el)) return bgCache.get(el);
+    const c = parseColor(getComputedStyle(el).backgroundColor);
+    let out;
+    if (c && c.a >= 0.95) out = c;
+    else {
+      const behind = resolvedBg(el.parentElement);
+      out = (!c || c.a < 0.05) ? behind : composite(c, behind);
+    }
+    bgCache.set(el, out);
+    return out;
+  }
+  // 화면에 보이는 색으로 정규화: 반투명이면 backdropEl의 배경 위에 합성
+  // (요소 배경 → 부모, 텍스트·테두리 → 요소 자신)
+  function seenColor(c, backdropEl) {
+    if (!c || isTransparent(c)) return null;
+    return c.a >= 0.95 ? c : composite(c, resolvedBg(backdropEl));
+  }
+
   const all = document.querySelectorAll('body, body *');
+  // 상한 초과 시 앞부분만 자르지 않고 전체를 등간격 샘플링 — 문서 순서(상단) 편향 방지
+  const stride = all.length > MAX_ELEMENTS ? all.length / MAX_ELEMENTS : 1;
   const limit = Math.min(all.length, MAX_ELEMENTS);
 
   for (let i = 0; i < limit; i++) {
-    const el = all[i];
+    const el = all[Math.floor(i * stride)];
     if (!visible(el)) continue;
     const cs = getComputedStyle(el);
+    // 크기는 있어도 실제로 안 보이는 요소(닫힌 메뉴·오버레이) 제외 — 팔레트 오염 방지
+    if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
 
-    // 배경색 (면적 가중)
-    const bg = parseColor(cs.backgroundColor);
-    if (!isTransparent(bg)) tally(bgColors, toHex(bg), Math.sqrt(area(el)));
+    // 배경색 (면적 가중, 반투명은 뒤 배경과 합성해 실제 표시색으로)
+    const bg = seenColor(parseColor(cs.backgroundColor), el.parentElement);
+    if (bg) tally(bgColors, toHex(bg), Math.sqrt(area(el)));
 
-    // 텍스트 색
-    const hasText = [...el.childNodes].some(
-      (n) => n.nodeType === 3 && n.textContent.trim().length > 0
+    // 텍스트 색 — 글자 수 가중: 한 글자 아이콘 span과 본문 문단을 구별
+    const textLen = [...el.childNodes].reduce(
+      (sum, n) => sum + (n.nodeType === 3 ? n.textContent.trim().length : 0), 0
     );
-    if (hasText) {
-      const fg = parseColor(cs.color);
-      if (!isTransparent(fg)) tally(textColors, toHex(fg));
-      tally(fontFamilies, cs.fontFamily.split(',')[0].replace(/["']/g, '').trim());
-      tally(fontSizes, Math.round(parseFloat(cs.fontSize)));
-      tally(fontWeights, cs.fontWeight);
+    if (textLen > 0) {
+      const tw = Math.min(textLen, 300); // 초장문 문단이 독점하지 않게 상한
+      const fg = seenColor(parseColor(cs.color), el);
+      if (fg) tally(textColors, toHex(fg), tw);
+      tally(fontFamilies, cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(), tw);
+      tally(fontSizes, Math.round(parseFloat(cs.fontSize)), tw);
+      tally(fontWeights, cs.fontWeight, tw);
       if (el.tagName === 'A') {
-        const lc = parseColor(cs.color);
-        if (!isTransparent(lc)) tally(linkColors, toHex(lc));
+        if (fg) tally(linkColors, toHex(fg));
       }
     }
 
     // 테두리 (색 + 두께)
     const bw = parseFloat(cs.borderTopWidth);
     if (bw > 0 && cs.borderTopStyle !== 'none') {
-      const bc = parseColor(cs.borderTopColor);
-      if (!isTransparent(bc)) tally(borderColors, toHex(bc));
+      const bc = seenColor(parseColor(cs.borderTopColor), el);
+      if (bc) tally(borderColors, toHex(bc));
       if (bw <= 12) tally(borderWidths, Math.round(bw));
     }
 
@@ -132,8 +222,10 @@ export function analyzePage(opts) {
     const rad = parseFloat(cs.borderTopLeftRadius);
     if (rad > 0) tally(radii, Math.round(rad));
 
-    // 그림자
-    if (cs.boxShadow && cs.boxShadow !== 'none') tally(shadows, cs.boxShadow);
+    // 그림자 (소수점 px는 반올림해 동일 그림자의 파편화 방지)
+    if (cs.boxShadow && cs.boxShadow !== 'none') {
+      tally(shadows, cs.boxShadow.replace(/(-?\d+\.\d+)px/g, (_, n) => Math.round(parseFloat(n)) + 'px'));
+    }
 
     // 여백 스케일
     ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight',
@@ -244,6 +336,18 @@ export function analyzePage(opts) {
     };
   }
 
+  // 스타일 클러스터 키: 정규화된 hex + 반올림 반경 — rgba 표기·서브픽셀 차이로 분열하지 않게
+  const hexKey = (str) => {
+    const c = parseColor(str);
+    return !c || isTransparent(c) ? 't' : toHex(c);
+  };
+  // 클러스터 맵 → 일관성 지표 (감지 수 / 스타일 변형 수 / 최다 스타일 커버 수)
+  const consistencyOf = (total, clusters) => (total ? {
+    total,
+    variants: clusters.size,
+    topCount: Math.max(...[...clusters.values()].map((c) => c.count)),
+  } : null);
+
   // 버튼: 스타일 시그니처별로 클러스터링해서 상위 2종(primary/secondary 추정)
   const buttonEls = [...document.querySelectorAll(
     'button, [role="button"], input[type="submit"], input[type="button"], a[class*="btn" i], a[class*="button" i]'
@@ -251,15 +355,22 @@ export function analyzePage(opts) {
   const btnClusters = new Map();
   buttonEls.forEach((el) => {
     const s = styleSnapshot(el);
-    const key = `${s.background}|${s.color}|${s.borderRadius}|${s.border}`;
+    const key = `${hexKey(s.background)}|${hexKey(s.color)}|${Math.round(parseFloat(s.borderRadius) || 0)}|${s.border}`;
+    const label = (el.textContent || el.value || '').trim().slice(0, 30);
     if (!btnClusters.has(key)) {
-      btnClusters.set(key, {
-        style: s, count: 0,
-        sample: (el.textContent || el.value || '').trim().slice(0, 30),
-        height: Math.round(el.getBoundingClientRect().height),
-      });
+      btnClusters.set(key, { style: s, count: 0, sample: label, heights: [] });
     }
-    btnClusters.get(key).count++;
+    const cl = btnClusters.get(key);
+    cl.count++;
+    // offsetHeight: transform(회전·스케일)에 영향받지 않는 레이아웃 높이
+    if (cl.heights.length < 20) cl.heights.push(el.offsetHeight || Math.round(el.getBoundingClientRect().height));
+    if (!cl.sample && label) cl.sample = label; // 아이콘 전용 버튼이 대표가 됐으면 텍스트 있는 샘플로 교체
+  });
+  // 대표 높이 = 중앙값 — 첫 요소가 flex 스트레치 등으로 비정상 높이일 때 오염 방지
+  btnClusters.forEach((cl) => {
+    const hs = cl.heights.sort((a, b) => a - b);
+    cl.height = hs.length ? hs[Math.floor(hs.length / 2)] : null;
+    delete cl.heights;
   });
   const buttonVariants = [...btnClusters.values()]
     .sort((a, b) => b.count - a.count)
@@ -271,15 +382,24 @@ export function analyzePage(opts) {
     return score(sb) - score(sa);
   });
 
-  // 입력창
-  const inputEl = [...document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea, select')]
-    .filter(visible)[0];
-  const inputStyle = inputEl ? styleSnapshot(inputEl) : null;
+  // 입력창: 전체 수집 후 클러스터링 — 첫 요소가 아웃라이어(검색창 등)여도 지배 스타일 채택
+  const inputEls = [...document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea, select')]
+    .filter(visible).slice(0, 40);
+  const inputClusters = new Map();
+  inputEls.forEach((el) => {
+    const s = styleSnapshot(el);
+    const key = `${hexKey(s.background)}|${s.border}|${Math.round(parseFloat(s.borderRadius) || 0)}`;
+    const cl = inputClusters.get(key);
+    if (!cl) inputClusters.set(key, { style: s, count: 1 });
+    else cl.count++;
+  });
+  const inputTop = [...inputClusters.values()].sort((a, b) => b.count - a.count)[0];
+  const inputStyle = inputTop ? inputTop.style : null;
 
   // 내비게이션 (헤더 바)
   const navEl = [...document.querySelectorAll('header, nav, [role="banner"]')].filter(visible)[0];
   const navStyle = navEl ? Object.assign(styleSnapshot(navEl), {
-    height: Math.round(navEl.getBoundingClientRect().height),
+    height: navEl.offsetHeight || Math.round(navEl.getBoundingClientRect().height),
     position: getComputedStyle(navEl).position,
   }) : null;
 
@@ -288,8 +408,9 @@ export function analyzePage(opts) {
   const underlined = linkSample.filter((a) => getComputedStyle(a).textDecorationLine.includes('underline')).length;
   const linkUnderline = linkSample.length ? (underlined / linkSample.length > 0.5 ? 'underline' : 'none') : null;
 
-  // 카드: 반경 + (그림자 또는 테두리) + 패딩 + 복수 자식
-  const cardEl = [...document.querySelectorAll('div, section, article, li')]
+  // 카드: 반경 + (그림자 또는 테두리) + 패딩 + 복수 자식.
+  // 후보 전체를 클러스터링해 "가장 반복되는" 스타일을 대표로 — 최대 면적 1개 채택은 아웃라이어에 취약
+  const cardCandidates = [...document.querySelectorAll('div, section, article, li')]
     .filter(visible)
     .filter((el) => {
       const cs = getComputedStyle(el);
@@ -299,12 +420,21 @@ export function analyzePage(opts) {
       const bg = parseColor(cs.backgroundColor);
       return hasRad && hasEdge && hasPad && !isTransparent(bg) && el.children.length >= 2;
     })
-    .slice(0, 50)
-    .sort((a, b) => area(b) - area(a))[0];
-  const cardStyle = cardEl ? styleSnapshot(cardEl) : null;
+    .slice(0, 80);
+  const cardClusters = new Map();
+  cardCandidates.forEach((el) => {
+    const s = styleSnapshot(el);
+    const key = `${hexKey(s.background)}|${Math.round(parseFloat(s.borderRadius) || 0)}|${s.border}|${s.boxShadow !== 'none'}`;
+    const cl = cardClusters.get(key);
+    if (!cl) cardClusters.set(key, { style: s, count: 1, area: area(el) });
+    else { cl.count++; cl.area = Math.max(cl.area, area(el)); }
+  });
+  const cardTop = [...cardClusters.values()].sort((a, b) => b.count - a.count || b.area - a.area)[0];
+  const cardStyle = cardTop ? cardTop.style : null;
 
-  // 배지/칩: 배경 있는 작은 인라인 요소, 짧은 텍스트, 약간의 반경
-  const badgeEl = [...document.querySelectorAll('span, small, [class*="badge" i], [class*="tag" i], [class*="chip" i], [class*="pill" i], [class*="label" i]')]
+  // 배지/칩: 배경 있는 작은 인라인 요소, 짧은 텍스트, 약간의 반경.
+  // 첫 매치가 아니라 최다 반복 스타일을 대표로 채택
+  const badgeCandidates = [...document.querySelectorAll('span, small, [class*="badge" i], [class*="tag" i], [class*="chip" i], [class*="pill" i], [class*="label" i]')]
     .filter(visible)
     .filter((el) => {
       const cs = getComputedStyle(el);
@@ -313,8 +443,18 @@ export function analyzePage(opts) {
       return !isTransparent(bg) && parseFloat(cs.borderTopLeftRadius) >= 2 &&
         r.height > 0 && r.height <= 40 && r.width <= 220 &&
         (el.textContent || '').trim().length <= 24 && el.children.length <= 1;
-    })[0];
-  const badgeStyle = badgeEl ? styleSnapshot(badgeEl) : null;
+    })
+    .slice(0, 60);
+  const badgeClusters = new Map();
+  badgeCandidates.forEach((el) => {
+    const s = styleSnapshot(el);
+    const key = `${hexKey(s.background)}|${hexKey(s.color)}|${Math.round(parseFloat(s.borderRadius) || 0)}`;
+    const cl = badgeClusters.get(key);
+    if (!cl) badgeClusters.set(key, { style: s, count: 1 });
+    else cl.count++;
+  });
+  const badgeTop = [...badgeClusters.values()].sort((a, b) => b.count - a.count)[0];
+  const badgeStyle = badgeTop ? badgeTop.style : null;
 
   // 폼 컨트롤 인벤토리 (체크박스/라디오/셀렉트/텍스트영역/레인지 + accent 색)
   const accentEl = document.querySelector('input[type=checkbox], input[type=radio]');
@@ -463,9 +603,8 @@ export function analyzePage(opts) {
   } catch (e) { /* 무시 */ }
 
   /* ---------- 결과 조립 ---------- */
-  const pageBg = parseColor(getComputedStyle(document.body).backgroundColor);
-  const effectiveBg = !isTransparent(pageBg) ? pageBg :
-    parseColor(getComputedStyle(document.documentElement).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+  // body가 반투명/투명이어도 조상 합성으로 실제 표시 배경을 얻는다
+  const effectiveBg = resolvedBg(document.body);
 
   return {
     meta: {
@@ -501,20 +640,27 @@ export function analyzePage(opts) {
       badge: badgeStyle,
       formControls,
       table: tableStyle,
+      // 컴포넌트 일관성: 감지 수 / 스타일 변형 수 / 최다 스타일 커버 수 — 문서 표기·린트에 사용
+      consistency: {
+        buttons: consistencyOf(buttonEls.length, btnClusters),
+        cards: consistencyOf(cardCandidates.length, cardClusters),
+        inputs: consistencyOf(inputEls.length, inputClusters),
+        badges: consistencyOf(badgeCandidates.length, badgeClusters),
+      },
       linkUnderline,
       hoverRules,
       focusRules,
       jsHoverDiffs,
     },
     layout: {
-      spacingScale: topEntries(spacings, 14).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
-      gaps: topEntries(gaps, 8).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
+      spacingScale: topEntries(snapScale(spacings), 14).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
+      gaps: topEntries(snapScale(gaps), 8).map(([v, n]) => ({ px: v, count: n })).sort((a, b) => a.px - b.px),
       gridCount, flexCount, totalContainers,
       containerWidths: topEntries(containerWidths, 4).map(([v, n]) => ({ px: v, count: n })),
     },
     depth: {
       shadows: topEntries(shadows, 6).map(([s, n]) => ({ shadow: s, count: n })),
-      radii: topEntries(radii, 8).map(([r, n]) => ({ px: r, count: n })).sort((a, b) => a.px - b.px),
+      radii: topEntries(snapScale(radii), 8).map(([r, n]) => ({ px: r, count: n })).sort((a, b) => a.px - b.px),
       zIndices: topEntries(zIndices, 8).map(([z, n]) => ({ z, count: n })).sort((a, b) => a.z - b.z),
       transitions: topEntries(transitions, 4).map(([t, n]) => ({ duration: t, count: n })),
       borderWidths: topEntries(borderWidths, 5).map(([px, n]) => ({ px, count: n })).sort((a, b) => a.px - b.px),

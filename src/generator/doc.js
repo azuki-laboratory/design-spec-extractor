@@ -114,8 +114,18 @@ export function generate(data, lang) {
   /* 4. 컴포넌트 스타일링 */
   push(T('## 4. Component Styling', '## 4. 컴포넌트 스타일링 (Component Stylings)'));
   push('');
+  // 컴포넌트 일관성 지표 (analyzer의 클러스터링 결과) — 없으면(구버전 분석) 생략
+  const cons = data.components.consistency || {};
+  const consLine = (c) => {
+    if (!c || c.total < 3) return null;
+    const pct = Math.round((c.topCount / c.total) * 100);
+    return T(`- **Consistency**: ${c.total} detected, ${c.variants} style variant(s) — dominant style covers ${pct}%`,
+             `- **일관성**: ${c.total}개 감지, 스타일 ${c.variants}종 — 최다 스타일 커버 ${pct}%`);
+  };
   const btns = data.components.buttons || [];
   if (btns.length) {
+    const bc = consLine(cons.buttons);
+    if (bc) { push(bc); push(''); }
     btns.slice(0, 2).forEach((b, i) => {
       push(`### \`button-${i === 0 ? 'primary' : 'secondary'}\`${b.sample ? T(` (e.g. "${b.sample}")`, ` (예: "${b.sample}")`) : ''}`);
       push(T(`- Background ${colorRef(b.style.background)}, text ${colorRef(b.style.color)}${b.height ? `, height ${b.height}px` : ''}`, `- 배경 ${colorRef(b.style.background)}, 텍스트 ${colorRef(b.style.color)}${b.height ? `, 높이 ${b.height}px` : ''}`));
@@ -139,6 +149,8 @@ export function generate(data, lang) {
     const s = data.components.input;
     push(T('### `text-input` — Input / Textarea / Select', '### `text-input` — 입력창 (Input / Textarea / Select)'));
     push(T(`- Background ${colorRef(s.background)}, text ${colorRef(s.color)}`, `- 배경 ${colorRef(s.background)}, 텍스트 ${colorRef(s.color)}`));
+    const ic = consLine(cons.inputs);
+    if (ic) push(ic);
     push('```css');
     push(`background: ${s.background};`);
     push(`color: ${s.color};`);
@@ -153,6 +165,8 @@ export function generate(data, lang) {
     const s = data.components.card;
     push(T('### `card` (inferred)', '### `card` (추정)'));
     push(T(`- Background ${colorRef(s.background)}`, `- 배경 ${colorRef(s.background)}`));
+    const cc = consLine(cons.cards);
+    if (cc) push(cc);
     push('```css');
     push(`background: ${s.background};`);
     push(`border: ${s.border};`);
@@ -177,6 +191,8 @@ export function generate(data, lang) {
     const s = data.components.badge;
     push(T('### `badge` — Badge / Tag / Chip', '### `badge` — 배지 / 태그 / 칩'));
     push(T(`- Background ${colorRef(s.background)}, text ${colorRef(s.color)}`, `- 배경 ${colorRef(s.background)}, 텍스트 ${colorRef(s.color)}`));
+    const bdc = consLine(cons.badges);
+    if (bdc) push(bdc);
     push('```css');
     push(`background: ${s.background};`);
     push(`color: ${s.color};`);
