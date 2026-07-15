@@ -1,9 +1,11 @@
-/* options.css — 설정 페이지 전용 스타일 (공용은 ui/theme.css) */
+/* options.css — 설정 페이지 전용 스타일 (공용 토큰은 ui/theme.css, 규칙은 DESIGN.md) */
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
     sans-serif;
   background: var(--azuki-cream);
+  background-image: var(--screentone);
+  background-size: var(--screentone-size);
   color: var(--azuki-ink);
   line-height: 1.5;
   padding: 32px 20px 64px;
@@ -23,7 +25,8 @@ body {
   height: 52px;
   flex-shrink: 0;
   border-radius: var(--radius-panel);
-  border: 1px solid var(--azuki-hairline);
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink-sm);
   background: var(--azuki-paper);
 }
 h1 {
@@ -35,12 +38,14 @@ h1 {
   font-size: 12px;
   color: var(--azuki-ink-mute);
 }
+/* 만화 컷 카드: 잉크 프레임 + 오프셋 잉크 섀도 */
 .card {
   background: var(--azuki-paper);
-  border: 1px solid var(--azuki-hairline);
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink);
   border-radius: var(--radius-panel);
   padding: 20px 22px;
-  margin-top: 20px;
+  margin-top: 22px;
 }
 .card h2 {
   font-size: 14px;
@@ -106,7 +111,7 @@ input[type="number"] {
   font: inherit;
   font-size: 13px;
   padding: 7px 9px;
-  border: 1px solid var(--azuki-hairline);
+  border: 1px solid var(--azuki-ink);
   border-radius: var(--radius-control);
   background: var(--azuki-cream);
   color: var(--azuki-ink);
@@ -129,7 +134,7 @@ input[type="number"]:focus-visible {
   font: inherit;
   font-size: 13px;
   padding: 7px 10px;
-  border: 1px solid var(--azuki-hairline);
+  border: 1px solid var(--azuki-ink);
   border-radius: var(--radius-control);
   background: var(--azuki-paper);
   color: var(--azuki-ink);
@@ -165,9 +170,9 @@ input[type="number"]:focus-visible {
   display: none;
   padding: 4px;
   background: var(--azuki-paper);
-  border: 1px solid var(--azuki-hairline);
+  border: var(--azuki-frame);
   border-radius: var(--radius-control);
-  box-shadow: 0 1px 0 rgba(20, 22, 28, 0.06);
+  box-shadow: var(--shadow-ink-sm);
 }
 .select.open .select-menu {
   display: block;
@@ -175,7 +180,7 @@ input[type="number"]:focus-visible {
 .select-opt {
   padding: 7px 9px;
   font-size: 13px;
-  border-radius: 4px;
+  border-radius: 2px;
   cursor: pointer;
   color: var(--azuki-ink);
 }
@@ -191,7 +196,7 @@ input[type="number"]:focus-visible {
   float: right;
   color: var(--azuki-blue);
 }
-/* 토글 스위치 */
+/* 토글 스위치: 잉크 프레임 + 사각 노브 */
 .switch {
   position: relative;
   display: inline-block;
@@ -208,8 +213,8 @@ input[type="number"]:focus-visible {
   inset: 0;
   cursor: pointer;
   background: var(--azuki-cream);
-  border: 1px solid var(--azuki-hairline);
-  border-radius: 5px;
+  border: 1px solid var(--azuki-ink);
+  border-radius: 4px;
   transition:
     background 0.15s,
     border-color 0.15s;
@@ -222,26 +227,22 @@ input[type="number"]:focus-visible {
   left: 3px;
   top: 3px;
   background: var(--azuki-ink);
-  border-radius: 3px;
+  border-radius: 2px;
   transition: transform 0.15s, background 0.15s;
 }
 .switch input:checked + .slider {
-  border-color: var(--azuki-blue);
+  background: var(--azuki-blue);
+  border-color: var(--azuki-ink);
 }
 .switch input:checked + .slider::before {
   background: var(--azuki-on-blue);
-}
-.switch input:checked + .slider {
-  background: var(--azuki-blue);
-}
-.switch input:checked + .slider::before {
   transform: translateX(20px);
 }
 .switch input:focus-visible + .slider {
   outline: 2px solid var(--azuki-blue-soft);
   outline-offset: 2px;
 }
-/* 하단 버튼 */
+/* 하단 버튼: 프레스 모션 */
 .row {
   display: flex;
   align-items: center;
@@ -263,18 +264,29 @@ button {
 #save {
   background: var(--azuki-blue);
   color: var(--azuki-on-blue);
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink-sm);
 }
 #save:hover {
   background: var(--azuki-blue-deep);
 }
+#save:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
 #reset {
   background: var(--azuki-paper);
   color: var(--azuki-ink);
-  border: 1px solid var(--azuki-hairline);
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink-sm);
   font-weight: 600;
 }
 #reset:hover {
-  border-color: var(--azuki-blue);
+  background: var(--azuki-cream);
+}
+#reset:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 #saved {
   font-size: 12.5px;
@@ -295,10 +307,16 @@ button {
   font-weight: 700;
   font-size: 13px;
   padding: 10px 16px;
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink-sm);
   border-radius: var(--radius-control);
 }
 .contact a:hover {
   background: var(--azuki-blue-deep);
+}
+.contact a:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 .contact .mail {
   font-size: 12.5px;

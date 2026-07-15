@@ -1,5 +1,6 @@
-/* ui/theme.css — Azuki 공용 디자인 토큰 + 기본 (BRAND.md 단일 출처)
-   popup·options 공통. 페이지 전용 스타일은 popup.css / options.css. */
+/* ui/theme.css — Azuki 공용 디자인 토큰 + 기본 (DESIGN.md 단일 출처)
+   popup·options 공통. 페이지 전용 스타일은 popup.css / options.css.
+   시그니처: 잉크 프레임 · 오프셋 잉크 섀도 · 프레스 모션 · 스크린톤 · 말풍선 */
 :root {
   --azuki-ink: #14161c;
   --azuki-ink-mute: #5b606e;
@@ -10,8 +11,16 @@
   --azuki-blue-deep: #1e4fd0;
   --azuki-blue-soft: #6fa8ff;
   --azuki-on-blue: #ffffff;
-  --radius-control: 6px;
-  --radius-panel: 10px;
+  --radius-control: 4px;
+  --radius-panel: 8px;
+  /* 잉크 프레임: 만화 컷 테두리 (주요 요소). hairline은 보조 요소 전용 */
+  --azuki-frame: 1.5px solid var(--azuki-ink);
+  /* 오프셋 잉크 섀도: 블러 0, 판화처럼 어긋난 인쇄 느낌 */
+  --shadow-ink: 3px 3px 0 var(--azuki-ink);
+  --shadow-ink-sm: 2px 2px 0 var(--azuki-ink);
+  /* 스크린톤: 만화 망점 텍스처 (배경·칩) */
+  --screentone: radial-gradient(rgba(20, 22, 28, 0.07) 1px, transparent 1px);
+  --screentone-size: 8px 8px;
 }
 * {
   box-sizing: border-box;

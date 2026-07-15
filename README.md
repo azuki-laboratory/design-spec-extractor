@@ -70,7 +70,7 @@ src/
   popup.html/.js/.css  [패널] 분석 실행·미리보기·내보내기 UI
   options.html/.js/.css[설정] 옵션·언어·문의
   i18n.js              런타임 UI 문자열(en/ko) + 적용 헬퍼
-  ui/theme.css         공용 브랜드 토큰(:root)·리셋 (BRAND.md 단일 출처)
+  ui/theme.css         공용 브랜드 토큰(:root)·리셋 (DESIGN.md(제품 디자인 시스템) 단일 출처)
   generator/           분석 JSON → 문서/토큰/시그니처 (ESM 모듈)
     core.js            공유 state·색상/토큰/스케일/무드/frontmatter 엔진
     doc.js             generate() — DESIGN.md 조립(섹션 1~11)
