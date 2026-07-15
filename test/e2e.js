@@ -236,6 +236,25 @@ async function main() {
     check('미리보기 열기 버튼', await popup.isVisible('#open-preview'));
     fs.writeFileSync(path.join(__dirname, 'output-passport.svg'), passport || '');
 
+    // Azuki 시그니처: 페이지 키트 (스타터 템플릿 zip)
+    const kitFiles = await popup.evaluate(() => window.__kitFiles);
+    const kitByName = Object.fromEntries((kitFiles || []).map((f) => [f.name, f.content]));
+    check('페이지 키트 파일 6종', (kitFiles || []).length === 6 && !!kitByName['index.html'] && !!kitByName['dashboard.html'] && !!kitByName['components.html'] && !!kitByName['styles/tokens.css'] && !!kitByName['styles/kit.css'] && !!kitByName['README.md']);
+    check('키트 랜딩에 토큰 참조', (kitByName['styles/kit.css'] || '').includes('var(--color-'));
+    check('키트에 Primary 반영', (kitByName['styles/kit.css'] || '').toLowerCase().includes('#e11d48') || (kitByName['styles/tokens.css'] || '').includes('--color-primary: #e11d48'));
+    check('키트 갤러리에 스와치', (kitByName['components.html'] || '').includes('--color-canvas'));
+    check('키트 XSS 이스케이프 (script 태그 없음)', !(kitByName['index.html'] || '').toLowerCase().includes('<script') && !(kitByName['components.html'] || '').toLowerCase().includes('<script'));
+    const zipHead = await popup.evaluate(() => {
+      const zip = window.DesignGenerator.buildKitZip(window.__kitFiles, new Date());
+      return [zip[0], zip[1], zip.length];
+    });
+    check('키트 zip 시그니처(PK)', zipHead[0] === 0x50 && zipHead[1] === 0x4b && zipHead[2] > 1000);
+    check('페이지 키트 버튼', await popup.isVisible('#download-kit'));
+    // 산출물 덤프 (육안 확인용)
+    const kitDir = path.join(__dirname, 'output-kit');
+    fs.mkdirSync(path.join(kitDir, 'styles'), { recursive: true });
+    (kitFiles || []).forEach((f) => fs.writeFileSync(path.join(kitDir, f.name), f.content));
+
     // 분석 고도화: 테두리 두께 / 불투명도 / 모션 / 접근성 / 아이콘 (섹션 6·11)
     check('테두리 두께 추출', /테두리 두께.*1px/.test(md));
     check('불투명도 스케일 추출', md.includes('불투명도 스케일') && md.includes('0.6'));
