@@ -241,6 +241,76 @@ button {
   overflow: auto;
   resize: none;
 }
+/* 페이지 키트 패널: 잉크 프레임 컷 안에 맞춤 옵션 */
+.kit-panel {
+  margin-top: 12px;
+  padding: 11px 12px;
+  background: var(--azuki-paper);
+  border: var(--azuki-frame);
+  border-radius: var(--radius-panel);
+}
+.kit-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.kit-field {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  border: 1px solid var(--azuki-hairline);
+  border-radius: var(--radius-control);
+  background: var(--azuki-cream);
+  color: var(--azuki-ink);
+  resize: vertical;
+}
+.kit-field:focus-visible {
+  outline: 2px solid var(--azuki-blue-soft);
+  outline-offset: 1px;
+  border-color: var(--azuki-blue);
+}
+.kit-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11.5px;
+  margin: 2px 0 6px;
+}
+.kit-pages label {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  cursor: pointer;
+}
+.kit-pages input[type="checkbox"] {
+  accent-color: var(--azuki-blue);
+}
+#ai-generate {
+  width: 100%;
+  margin-top: 2px;
+  background: var(--azuki-paper);
+  color: var(--azuki-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border: var(--azuki-frame);
+  box-shadow: var(--shadow-ink-sm);
+}
+#ai-generate:hover {
+  background: var(--azuki-cream);
+  color: var(--azuki-blue-deep);
+}
+#ai-generate:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+#ai-generate:disabled {
+  color: var(--azuki-ink-mute);
+  box-shadow: none;
+  cursor: default;
+}
 .actions {
   display: flex;
   gap: 8px;

@@ -239,7 +239,7 @@ async function main() {
     // Azuki 시그니처: 페이지 키트 (스타터 템플릿 zip)
     const kitFiles = await popup.evaluate(() => window.__kitFiles);
     const kitByName = Object.fromEntries((kitFiles || []).map((f) => [f.name, f.content]));
-    check('페이지 키트 파일 6종', (kitFiles || []).length === 6 && !!kitByName['index.html'] && !!kitByName['dashboard.html'] && !!kitByName['components.html'] && !!kitByName['styles/tokens.css'] && !!kitByName['styles/kit.css'] && !!kitByName['README.md']);
+    check('페이지 키트 파일 7종', (kitFiles || []).length === 7 && !!kitByName['index.html'] && !!kitByName['dashboard.html'] && !!kitByName['components.html'] && !!kitByName['pricing.html'] && !!kitByName['styles/tokens.css'] && !!kitByName['styles/kit.css'] && !!kitByName['README.md']);
     check('키트 랜딩에 토큰 참조', (kitByName['styles/kit.css'] || '').includes('var(--color-'));
     check('키트에 Primary 반영', (kitByName['styles/kit.css'] || '').toLowerCase().includes('#e11d48') || (kitByName['styles/tokens.css'] || '').includes('--color-primary: #e11d48'));
     check('키트 갤러리에 스와치', (kitByName['components.html'] || '').includes('--color-canvas'));
@@ -250,6 +250,24 @@ async function main() {
     });
     check('키트 zip 시그니처(PK)', zipHead[0] === 0x50 && zipHead[1] === 0x4b && zipHead[2] > 1000);
     check('페이지 키트 버튼', await popup.isVisible('#download-kit'));
+
+    // 맞춤 키트: 옵션(브랜드/CTA/페이지 선택) 반영
+    const customKit = await popup.evaluate(() => {
+      const files = window.DesignGenerator.exportKit(window.__analysisData, 'ko', { brand: '테스트브랜드', cta: '구매하기', headline: '나만의 헤드라인', pages: ['landing'] });
+      return { names: files.map((f) => f.name), index: files.find((f) => f.name === 'index.html')?.content || '' };
+    });
+    check('맞춤 키트 페이지 선택 (landing만)', customKit.names.length === 4 && !customKit.names.includes('dashboard.html') && !customKit.names.includes('pricing.html'));
+    check('맞춤 키트 브랜드·문구 반영', customKit.index.includes('테스트브랜드') && customKit.index.includes('구매하기') && customKit.index.includes('나만의 헤드라인'));
+
+    // AI 맞춤 페이지: 구조 JSON → 렌더 (결정적 검증 — LLM 호출 없음)
+    const custom = await popup.evaluate(() => {
+      const structure = window.DesignGenerator.parseKitStructure('```json\n{"title":"요가 스튜디오","brand":"<script>alert(1)</script>","sections":[{"type":"hero","title":"몸과 마음의 균형","body":"소규모 클래스","cta":"예약하기"},{"type":"pricing","items":[{"title":"1개월","price":"₩99,000","features":["주 2회"]}]},{"type":"faq","items":[{"title":"초보자도 되나요?","body":"네."}]}]}\n```');
+      return structure ? window.DesignGenerator.buildCustomKitPage(window.__analysisData, structure, 'ko') : null;
+    });
+    check('AI 구조 JSON 파싱 (코드펜스 관용)', !!custom);
+    check('AI 맞춤 페이지 렌더', !!custom && custom.includes('몸과 마음의 균형') && custom.includes('₩99,000') && custom.includes('예약하기'));
+    check('AI 맞춤 페이지 XSS 이스케이프', !!custom && !custom.includes('<script>alert') && custom.includes('&lt;script&gt;'));
+    check('AI 프롬프트 UI 기본 숨김 (미지원 환경)', !(await popup.isVisible('#ai-kit')));
     // 산출물 덤프 (육안 확인용)
     const kitDir = path.join(__dirname, 'output-kit');
     fs.mkdirSync(path.join(kitDir, 'styles'), { recursive: true });

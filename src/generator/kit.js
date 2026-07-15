@@ -1,7 +1,9 @@
 // generator/kit.js — 페이지 키트: 추출 토큰·컴포넌트로 스타터 페이지 묶음(zip) 생성 (ESM)
-// index(랜딩)·dashboard·components(갤러리) + tokens.css/kit.css + README.
+// index(랜딩)·dashboard·components(갤러리)·pricing + tokens.css/kit.css + README.
 // 모든 페이지가 var(--color-*) 토큰을 참조 → tokens.css만 고치면 키트 전체에 반영된다.
-import { state, T, htmlEsc, cssSafe, buildColorTokens, buildSpacingTokens, buildRadiusTokens, buildTypeTokens, rgbStrToHex, contrast, luminance } from './core.js';
+// kitOpts(사용자 맞춤)와 buildCustomKitPage(AI 구조 JSON 렌더)도 여기서 처리 —
+// LLM은 구조만 만들고 HTML 렌더는 항상 이 모듈(전 값 이스케이프)이 담당한다.
+import { state, T, htmlEsc, cssSafe, buildColorTokens, buildSpacingTokens, buildRadiusTokens, buildTypeTokens, rgbStrToHex, contrast } from './core.js';
 import { exportTokens } from './exporters.js';
 
 /* ---------- 색상 → 토큰 var() 참조 ---------- */
@@ -120,6 +122,16 @@ function buildKitCss(data, tokens) {
   c.push(`.main { padding: ${sp(4, '32px')}; }`);
   c.push('.stat { display: grid; gap: 4px; }');
   c.push('.stat .num { font-size: 28px; font-weight: 700; }');
+  // 프라이싱
+  c.push(`.plan { display: grid; gap: 12px; align-content: start; }`);
+  c.push(`.plan .price { font-size: 34px; font-weight: 700; }`);
+  c.push(`.plan.featured { outline: 2px solid var(--color-primary, ${cssSafe(primary)}); }`);
+  c.push('.plan ul { list-style: none; display: grid; gap: 6px; }');
+  c.push(`.plan ul li::before { content: "✓ "; color: var(--color-primary, ${cssSafe(primary)}); font-weight: 700; }`);
+  // FAQ
+  c.push('details { border-bottom: 1px solid var(--color-hairline, #eee); padding: 12px 0; }');
+  c.push('details summary { cursor: pointer; font-weight: 600; }');
+  c.push('details p { margin-top: 8px; }');
   c.push('footer.site { border-top: 1px solid var(--color-hairline, #eee); }');
   c.push('@media (max-width: 720px) { .dash { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--color-hairline, #eee); } }');
   return c.join('\n');
@@ -143,15 +155,15 @@ ${bodyHtml}
 `;
 }
 
-function navHtml(brand, active) {
-  const link = (href, label, key) =>
-    `<li><a href="${href}"${active === key ? ' style="font-weight:700"' : ''}>${label}</a></li>`;
+function navHtml(brand, pages, active) {
+  const label = { landing: T('Home', '홈'), dashboard: T('Dashboard', '대시보드'), components: T('Components', '컴포넌트'), pricing: T('Pricing', '가격') };
+  const href = { landing: 'index.html', dashboard: 'dashboard.html', components: 'components.html', pricing: 'pricing.html' };
+  const links = pages.map((p) =>
+    `<li><a href="${href[p]}"${active === p ? ' style="font-weight:700"' : ''}>${label[p]}</a></li>`).join('\n    ');
   return `<nav class="nav"><div class="container nav-inner">
-  <a class="brand" href="index.html">${htmlEsc(brand)}</a>
+  <a class="brand" href="${pages.includes('landing') ? 'index.html' : '#'}">${htmlEsc(brand)}</a>
   <ul class="nav-links">
-    ${link('index.html', T('Home', '홈'), 'home')}
-    ${link('dashboard.html', T('Dashboard', '대시보드'), 'dash')}
-    ${link('components.html', T('Components', '컴포넌트'), 'comp')}
+    ${links}
     <li><a class="btn-primary" href="#">${T('Get started', '시작하기')}</a></li>
   </ul>
 </div></nav>`;
@@ -164,38 +176,107 @@ function footerHtml(brand) {
 </div></footer>`;
 }
 
-function landingHtml(data, brand) {
-  const feats = [
-    [T('Fast', '빠르게'), T('Describe the first key benefit of your product here.', '제품의 첫 번째 핵심 가치를 여기에 적으세요.')],
-    [T('Consistent', '일관되게'), T('This kit reuses the exact tokens extracted from your reference design.', '이 키트는 참조 디자인에서 추출한 토큰을 그대로 사용합니다.')],
-    [T('Yours', '당신답게'), T('Edit styles/tokens.css once — every page follows.', 'styles/tokens.css 한 곳만 고치면 모든 페이지에 반영됩니다.')],
-  ].map(([h3, p]) => `<div class="card stack" style="gap:8px"><span class="badge">${T('Feature', '기능')}</span><h3>${h3}</h3><p class="muted">${p}</p></div>`).join('\n    ');
-  return `${navHtml(brand, 'home')}
-<header class="section"><div class="container stack" style="max-width:720px;text-align:center">
-  <h1>${T('Your headline, in your design', '당신의 디자인으로, 당신의 헤드라인')}</h1>
-  <p class="muted">${T('This starter page is styled with the palette, type scale and components extracted from the analyzed site. Replace this copy and ship.', '분석한 사이트에서 추출한 팔레트·타입 스케일·컴포넌트로 스타일된 스타터 페이지입니다. 문구만 바꿔서 배포하세요.')}</p>
+/* ---------- 섹션 렌더러 (템플릿·AI 커스텀 공용) ----------
+   모든 텍스트는 htmlEsc + 길이 상한. AI가 어떤 구조를 주든 여기서만 HTML이 된다. */
+const esc = (s, n) => htmlEsc(String(s == null ? '' : s).slice(0, n));
+
+const SECTION_RENDERERS = {
+  hero(s) {
+    return `<header class="section"><div class="container stack" style="max-width:720px;text-align:center">
+  <h1>${esc(s.title, 90)}</h1>
+  ${s.body ? `<p class="muted">${esc(s.body, 260)}</p>` : ''}
   <div class="row" style="justify-content:center">
-    <a class="btn-primary" href="#">${T('Primary action', '주요 액션')}</a>
-    <a class="btn-secondary" href="#">${T('Secondary', '보조 액션')}</a>
+    <a class="btn-primary" href="#">${esc(s.cta || T('Get started', '시작하기'), 30)}</a>
+    ${s.cta2 ? `<a class="btn-secondary" href="#">${esc(s.cta2, 30)}</a>` : ''}
   </div>
-</div></header>
-<section class="section"><div class="container grid-3">
-    ${feats}
-</div></section>
-<section class="section"><div class="container card row" style="justify-content:space-between">
-  <div><h2>${T('Ready to start?', '시작할 준비 되셨나요?')}</h2><p class="muted">${T('One primary action per band — as your design intends.', '밴드당 주요 액션 하나 — 원본 디자인의 의도대로.')}</p></div>
-  <a class="btn-primary" href="#">${T('Get started', '시작하기')}</a>
-</div></section>
+</div></header>`;
+  },
+  features(s) {
+    const cards = (s.items || []).slice(0, 6).map((it) =>
+      `<div class="card stack" style="gap:8px">${it.badge ? `<span class="badge">${esc(it.badge, 16)}</span>` : ''}<h3>${esc(it.title, 50)}</h3><p class="muted">${esc(it.body, 200)}</p></div>`).join('\n    ');
+    return `<section class="section"><div class="container stack">
+  ${s.title ? `<h2>${esc(s.title, 60)}</h2>` : ''}
+  <div class="grid-3">
+    ${cards}
+  </div>
+</div></section>`;
+  },
+  stats(s) {
+    const cells = (s.items || []).slice(0, 4).map((it) =>
+      `<div class="card stat"><span class="muted">${esc(it.title, 30)}</span><span class="num">${esc(it.value, 16)}</span></div>`).join('\n    ');
+    return `<section class="section"><div class="container grid-3">
+    ${cells}
+</div></section>`;
+  },
+  faq(s) {
+    const rows = (s.items || []).slice(0, 8).map((it) =>
+      `<details><summary>${esc(it.title, 90)}</summary><p class="muted">${esc(it.body, 300)}</p></details>`).join('\n    ');
+    return `<section class="section"><div class="container stack" style="max-width:720px">
+  <h2>${esc(s.title || 'FAQ', 60)}</h2>
+  <div>
+    ${rows}
+  </div>
+</div></section>`;
+  },
+  pricing(s) {
+    const plans = (s.items || []).slice(0, 4).map((it, i) => {
+      const feats = (it.features || []).slice(0, 6).map((f) => `<li>${esc(f, 60)}</li>`).join('');
+      return `<div class="card plan${it.featured || i === 1 ? ' featured' : ''}">
+      <h3>${esc(it.title, 30)}</h3>
+      <div class="price">${esc(it.price, 20)}</div>
+      ${it.body ? `<p class="muted">${esc(it.body, 120)}</p>` : ''}
+      ${feats ? `<ul>${feats}</ul>` : ''}
+      <a class="${it.featured || i === 1 ? 'btn-primary' : 'btn-secondary'}" href="#">${esc(it.cta || T('Choose', '선택'), 24)}</a>
+    </div>`;
+    }).join('\n    ');
+    return `<section class="section"><div class="container stack">
+  <h2 style="text-align:center">${esc(s.title || T('Pricing', '가격'), 60)}</h2>
+  <div class="grid-3">
+    ${plans}
+  </div>
+</div></section>`;
+  },
+  cta(s) {
+    return `<section class="section"><div class="container card row" style="justify-content:space-between">
+  <div><h2>${esc(s.title, 70)}</h2>${s.body ? `<p class="muted">${esc(s.body, 200)}</p>` : ''}</div>
+  <a class="btn-primary" href="#">${esc(s.cta || T('Get started', '시작하기'), 30)}</a>
+</div></section>`;
+  },
+};
+
+function renderSections(sections) {
+  return (sections || []).slice(0, 8)
+    .map((s) => (SECTION_RENDERERS[s.type] ? SECTION_RENDERERS[s.type](s) : ''))
+    .filter(Boolean).join('\n');
+}
+
+/* ---------- 기본 템플릿 페이지 ---------- */
+function landingHtml(data, brand, pages, ko) {
+  const sections = [
+    { type: 'hero', title: ko.headline || T('Your headline, in your design', '당신의 디자인으로, 당신의 헤드라인'),
+      body: ko.sub || T('This starter page is styled with the palette, type scale and components extracted from the analyzed site. Replace this copy and ship.', '분석한 사이트에서 추출한 팔레트·타입 스케일·컴포넌트로 스타일된 스타터 페이지입니다. 문구만 바꿔서 배포하세요.'),
+      cta: ko.cta || T('Primary action', '주요 액션'), cta2: T('Secondary', '보조 액션') },
+    { type: 'features', items: [
+      { badge: T('Feature', '기능'), title: T('Fast', '빠르게'), body: T('Describe the first key benefit of your product here.', '제품의 첫 번째 핵심 가치를 여기에 적으세요.') },
+      { badge: T('Feature', '기능'), title: T('Consistent', '일관되게'), body: T('This kit reuses the exact tokens extracted from your reference design.', '이 키트는 참조 디자인에서 추출한 토큰을 그대로 사용합니다.') },
+      { badge: T('Feature', '기능'), title: T('Yours', '당신답게'), body: T('Edit styles/tokens.css once — every page follows.', 'styles/tokens.css 한 곳만 고치면 모든 페이지에 반영됩니다.') },
+    ] },
+    { type: 'cta', title: T('Ready to start?', '시작할 준비 되셨나요?'),
+      body: T('One primary action per band — as your design intends.', '밴드당 주요 액션 하나 — 원본 디자인의 의도대로.'),
+      cta: ko.cta || T('Get started', '시작하기') },
+  ];
+  return `${navHtml(brand, pages, 'landing')}
+${renderSections(sections)}
 ${footerHtml(brand)}`;
 }
 
-function dashboardHtml(data, brand) {
+function dashboardHtml(data, brand, pages) {
   const rows = [
     [T('Design tokens', '디자인 토큰'), T('Synced', '동기화됨'), '128'],
     [T('Pages analyzed', '분석한 페이지'), T('Done', '완료'), '3'],
     [T('Components', '컴포넌트'), T('Stable', '안정'), '24'],
   ].map(([a, b, n]) => `<tr><td>${a}</td><td><span class="badge">${b}</span></td><td>${n}</td></tr>`).join('\n      ');
-  return `${navHtml(brand, 'dash')}
+  return `${navHtml(brand, pages, 'dashboard')}
 <div class="dash">
   <aside class="sidebar">
     <a class="active" href="#">${T('Overview', '개요')}</a>
@@ -224,7 +305,7 @@ function dashboardHtml(data, brand) {
 </div>`;
 }
 
-function componentsHtml(data, tokens, brand) {
+function componentsHtml(data, tokens, brand, pages) {
   const swatches = tokens.map((t) =>
     `<div class="card" style="padding:12px"><div style="height:56px;border-radius:6px;background:var(--color-${cssSafe(t.name)});border:1px solid var(--color-hairline,#eee)"></div><p style="margin-top:8px"><b>${htmlEsc(t.name)}</b><br><span class="muted">${htmlEsc(t.hex)}</span></p></div>`
   ).join('\n    ');
@@ -234,7 +315,7 @@ function componentsHtml(data, tokens, brand) {
   const type = buildTypeTokens(data).map((r) =>
     `<p style="font-size:${cssSafe(r.size)}px;font-weight:${cssSafe(r.weight)}">${htmlEsc(r.token)} — ${cssSafe(r.size)}px</p>`
   ).join('\n    ');
-  return `${navHtml(brand, 'comp')}
+  return `${navHtml(brand, pages, 'components')}
 <main class="section"><div class="container stack" style="gap:40px">
   <div><h1>${T('Component gallery', '컴포넌트 갤러리')}</h1><p class="muted">${T('Everything below is rendered with the extracted tokens.', '아래 모든 요소는 추출된 토큰으로 렌더링됩니다.')}</p></div>
   <section class="stack"><h2>${T('Colors', '컬러')}</h2><div class="grid-3">
@@ -259,8 +340,27 @@ function componentsHtml(data, tokens, brand) {
 ${footerHtml(brand)}`;
 }
 
-function readmeMd(data) {
+function pricingHtml(data, brand, pages) {
+  const sections = [
+    { type: 'pricing', title: T('Simple pricing', '심플한 가격'), items: [
+      { title: 'Starter', price: '$0', body: T('For trying things out', '가볍게 시작할 때'), features: [T('Core features', '핵심 기능'), T('Community support', '커뮤니티 지원')], cta: T('Start free', '무료 시작') },
+      { title: 'Pro', price: '$12/mo', body: T('For growing products', '성장하는 제품을 위해'), features: [T('Everything in Starter', 'Starter 전부 포함'), T('Advanced exports', '고급 내보내기'), T('Priority support', '우선 지원')], featured: true, cta: T('Go Pro', 'Pro 시작') },
+      { title: 'Team', price: '$39/mo', body: T('For teams and agencies', '팀·에이전시용'), features: [T('Everything in Pro', 'Pro 전부 포함'), T('Shared workspaces', '공유 워크스페이스')], cta: T('Contact us', '문의하기') },
+    ] },
+    { type: 'faq', title: 'FAQ', items: [
+      { title: T('Can I change my plan later?', '플랜은 나중에 바꿀 수 있나요?'), body: T('Yes — upgrade or downgrade anytime.', '네 — 언제든 업그레이드/다운그레이드할 수 있어요.') },
+      { title: T('Is there a free trial?', '무료 체험이 있나요?'), body: T('The Starter plan is free forever.', 'Starter 플랜은 계속 무료입니다.') },
+    ] },
+  ];
+  return `${navHtml(brand, pages, 'pricing')}
+${renderSections(sections)}
+${footerHtml(brand)}`;
+}
+
+function readmeMd(data, hasCustom) {
   const host = (() => { try { return new URL(data.meta.url).host; } catch (e) { return data.meta.url; } })();
+  const customRowEn = hasCustom ? '\n| `custom.html` | Page generated from your prompt (on-device AI) |' : '';
+  const customRowKo = hasCustom ? '\n| `custom.html` | 프롬프트로 생성한 맞춤 페이지 (온디바이스 AI) |' : '';
   return T(`# Azuki Page Kit
 
 A starter page kit generated from the design analysis of **${host}**.
@@ -272,8 +372,11 @@ A starter page kit generated from the design analysis of **${host}**.
 | \`index.html\` | Landing page (nav, hero, features, CTA, footer) |
 | \`dashboard.html\` | App dashboard (sidebar, stat cards, table, form) |
 | \`components.html\` | Live gallery of every extracted token & component |
+| \`pricing.html\` | Pricing page (plans + FAQ) |${customRowEn}
 | \`styles/tokens.css\` | **Design tokens — edit this file first** |
 | \`styles/kit.css\` | Component classes built on the tokens |
+
+(Only the pages you selected are included.)
 
 ## How to use
 
@@ -294,8 +397,11 @@ Generated by Azuki (Design Spec Extractor) · ${data.meta.analyzedAt}
 | \`index.html\` | 랜딩 페이지 (내비·히어로·기능·CTA·푸터) |
 | \`dashboard.html\` | 앱 대시보드 (사이드바·스탯 카드·테이블·폼) |
 | \`components.html\` | 추출된 토큰·컴포넌트 전체 갤러리 |
+| \`pricing.html\` | 가격 페이지 (플랜 + FAQ) |${customRowKo}
 | \`styles/tokens.css\` | **디자인 토큰 — 가장 먼저 수정할 파일** |
 | \`styles/kit.css\` | 토큰 위에 만든 컴포넌트 클래스 |
+
+(선택한 페이지만 포함됩니다.)
 
 ## 사용법
 
@@ -310,19 +416,71 @@ Azuki (Design Spec Extractor) 생성 · ${data.meta.analyzedAt}
 
 /* ---------- 공개 API ---------- */
 // 파일 목록 생성. [{ name, content }]
-export function exportKit(data, lang) {
+// kitOpts: { brand, headline, sub, cta, pages: ['landing','dashboard','components','pricing'], customPage: {name, content} }
+export function exportKit(data, lang, kitOpts) {
   state.LANG = lang === 'ko' ? 'ko' : 'en';
+  const o = kitOpts || {};
+  const pages = (o.pages && o.pages.length ? o.pages : ['landing', 'dashboard', 'components', 'pricing'])
+    .filter((p) => ['landing', 'dashboard', 'components', 'pricing'].includes(p));
   const tokens = buildColorTokens(data);
-  const brand = (data.meta.title || 'My Site').split(/[—|·:-]/)[0].trim().slice(0, 40) || 'My Site';
-  const tokensCss = exportTokens(data, lang).css;
-  return [
-    { name: 'index.html', content: page(brand, landingHtml(data, brand)) },
-    { name: 'dashboard.html', content: page(`${brand} — ${T('Dashboard', '대시보드')}`, dashboardHtml(data, brand)) },
-    { name: 'components.html', content: page(`${brand} — ${T('Components', '컴포넌트')}`, componentsHtml(data, tokens, brand)) },
-    { name: 'styles/tokens.css', content: tokensCss },
-    { name: 'styles/kit.css', content: buildKitCss(data, tokens) },
-    { name: 'README.md', content: readmeMd(data) },
-  ];
+  const brand = String(o.brand || (data.meta.title || 'My Site').split(/[—|·:-]/)[0].trim()).slice(0, 40) || 'My Site';
+  const ko = { headline: o.headline ? String(o.headline).slice(0, 90) : '', sub: o.sub ? String(o.sub).slice(0, 260) : '', cta: o.cta ? String(o.cta).slice(0, 30) : '' };
+  const files = [];
+  if (pages.includes('landing')) files.push({ name: 'index.html', content: page(brand, landingHtml(data, brand, pages, ko)) });
+  if (pages.includes('dashboard')) files.push({ name: 'dashboard.html', content: page(`${brand} — ${T('Dashboard', '대시보드')}`, dashboardHtml(data, brand, pages)) });
+  if (pages.includes('components')) files.push({ name: 'components.html', content: page(`${brand} — ${T('Components', '컴포넌트')}`, componentsHtml(data, tokens, brand, pages)) });
+  if (pages.includes('pricing')) files.push({ name: 'pricing.html', content: page(`${brand} — ${T('Pricing', '가격')}`, pricingHtml(data, brand, pages)) });
+  if (o.customPage && o.customPage.content) files.push({ name: 'custom.html', content: o.customPage.content });
+  files.push({ name: 'styles/tokens.css', content: exportTokens(data, lang).css });
+  files.push({ name: 'styles/kit.css', content: buildKitCss(data, tokens) });
+  files.push({ name: 'README.md', content: readmeMd(data, !!(o.customPage && o.customPage.content)) });
+  return files;
+}
+
+/* ---------- AI 맞춤 페이지 ----------
+   구조 JSON(온디바이스 LLM 또는 어떤 출처든) → HTML. 렌더는 전부 이스케이프 경유. */
+// structure: { title, brand, sections: [{type: hero|features|stats|faq|pricing|cta, title, body, cta, items:[...] }] }
+export function buildCustomKitPage(data, structure, lang) {
+  state.LANG = lang === 'ko' ? 'ko' : 'en';
+  const st = structure || {};
+  const brand = String(st.brand || (data.meta.title || 'My Site').split(/[—|·:-]/)[0].trim()).slice(0, 40) || 'My Site';
+  const pages = ['landing', 'dashboard', 'components', 'pricing'];
+  const bodyHtml = `${navHtml(brand, pages, null)}
+${renderSections(st.sections)}
+${footerHtml(brand)}`;
+  return page(String(st.title || brand).slice(0, 60), bodyHtml);
+}
+
+// 온디바이스 LLM에 줄 시스템 프롬프트 (구조 JSON만 요구 — HTML 생성 금지)
+export function customKitSystemPrompt(lang) {
+  const language = lang === 'ko' ? 'Korean' : 'English';
+  return `You are a landing page architect. Given a user's description of a page, respond with ONLY a JSON object (no markdown fences, no commentary) describing the page structure. All user-facing text must be written in ${language}.
+Schema:
+{"title": string, "brand": string, "sections": [
+ {"type":"hero","title":string,"body":string,"cta":string,"cta2":string?},
+ {"type":"features","title":string?,"items":[{"badge":string?,"title":string,"body":string}]},
+ {"type":"stats","items":[{"title":string,"value":string}]},
+ {"type":"pricing","title":string?,"items":[{"title":string,"price":string,"body":string?,"features":[string],"featured":boolean?,"cta":string?}]},
+ {"type":"faq","title":string?,"items":[{"title":string,"body":string}]},
+ {"type":"cta","title":string,"body":string?,"cta":string}
+]}
+Rules: 3-6 sections. Start with a hero. Write concrete, specific copy for the user's business — no lorem ipsum. Keep titles under 60 characters and bodies under 200.`;
+}
+
+// LLM 응답에서 JSON 추출 (코드펜스·잡담 관용)
+export function parseKitStructure(text) {
+  if (!text) return null;
+  const cleaned = String(text).replace(/```(?:json)?/gi, '');
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  try {
+    const obj = JSON.parse(cleaned.slice(start, end + 1));
+    if (!obj || !Array.isArray(obj.sections) || !obj.sections.length) return null;
+    return obj;
+  } catch (e) {
+    return null;
+  }
 }
 
 /* ---------- ZIP (무압축 STORE) ----------

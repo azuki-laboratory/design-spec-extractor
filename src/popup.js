@@ -124,6 +124,7 @@ function render() {
   window.__fingerprint = fp; // E2E 검증용
   window.__agentPrompt = DesignGenerator.exportAgentPrompt(data, opts.lang); // E2E 검증용
   window.__kitFiles = DesignGenerator.exportKit(data, opts.lang); // E2E 검증용 (zip은 클릭 시 생성)
+  window.__analysisData = data; // E2E 검증용 (맞춤 키트 옵션 테스트)
 
   $('preview').textContent = previewText;
   $('result').style.display = 'block';
@@ -164,6 +165,7 @@ async function runAnalysis(accumulate) {
     } else {
       analyses = [result];
     }
+    customPage = null; // 분석이 바뀌면 이전 AI 맞춤 페이지는 무효
     status.textContent = t().statusGenerating;
     render();
   } catch (e) {
@@ -226,15 +228,79 @@ for (const e of EXPORTERS) {
   $(e.id).addEventListener('click', () => downloadText(outputs[e.id], e.file, e.mime));
 }
 
+/* ---------- 페이지 키트 (맞춤 옵션 + 온디바이스 AI) ---------- */
+let customPage = null; // AI가 만든 custom.html (분석 갱신 시 초기화)
+
+// 패널 입력값 → kitOpts
+function getKitOpts() {
+  const pages = ['landing', 'dashboard', 'components', 'pricing']
+    .filter((p) => $(`kit-p-${p}`).checked);
+  return {
+    brand: $('kit-brand').value.trim(),
+    headline: $('kit-headline').value.trim(),
+    cta: $('kit-cta').value.trim(),
+    pages,
+    customPage,
+  };
+}
+
 // 페이지 키트: 스타터 페이지 묶음을 zip으로 다운로드
 $('download-kit').addEventListener('click', () => {
   if (!lastData) return;
-  const files = DesignGenerator.exportKit(lastData, opts.lang);
+  const kitOpts = getKitOpts();
+  if (!kitOpts.pages.length && !customPage) {
+    $('status').textContent = t().kitNoPages;
+    return;
+  }
+  const files = DesignGenerator.exportKit(lastData, opts.lang, kitOpts);
   const zip = DesignGenerator.buildKitZip(files, new Date());
   const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
   chrome.downloads.download({ url, filename: 'azuki-page-kit.zip', saveAs: opts.saveAsDialog }, () => {
     URL.revokeObjectURL(url);
   });
+});
+
+// 온디바이스 AI(Chrome Prompt API / Gemini Nano) 가용 시에만 프롬프트 UI 노출.
+// 미지원 기기·버전은 조용히 숨김 — 옵션 기반 맞춤(위 입력들)이 폴백.
+async function initAiKit() {
+  try {
+    if (typeof LanguageModel === 'undefined') return;
+    const avail = await LanguageModel.availability();
+    if (avail === 'unavailable') return;
+    $('ai-kit').style.display = 'block';
+  } catch (e) { /* 미지원 — 숨김 유지 */ }
+}
+initAiKit();
+
+$('ai-generate').addEventListener('click', async () => {
+  if (!lastData) return;
+  const promptText = $('ai-prompt').value.trim();
+  if (!promptText) return;
+  const status = $('status');
+  const btn = $('ai-generate');
+  btn.disabled = true;
+  status.className = '';
+  status.textContent = t().aiWorking;
+  try {
+    // 모델 미다운로드 상태면 create()가 다운로드를 트리거 — 진행 안내
+    const avail = await LanguageModel.availability();
+    if (avail === 'downloadable' || avail === 'downloading') status.textContent = t().aiDownloading;
+    const session = await LanguageModel.create({
+      initialPrompts: [{ role: 'system', content: DesignGenerator.customKitSystemPrompt(opts.lang) }],
+    });
+    const raw = await session.prompt(promptText);
+    session.destroy();
+    const structure = DesignGenerator.parseKitStructure(raw);
+    if (!structure) throw new Error(t().aiFail);
+    // LLM은 구조 JSON까지만 — HTML 렌더는 내부 템플릿(전 값 이스케이프)이 수행
+    customPage = { name: 'custom.html', content: DesignGenerator.buildCustomKitPage(lastData, structure, opts.lang) };
+    status.textContent = t().aiDone;
+  } catch (e) {
+    status.className = 'error';
+    status.textContent = (e && e.message) || t().aiFail;
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 $('download-shot').addEventListener('click', async () => {

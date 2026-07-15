@@ -21,6 +21,21 @@ const AZUKI_UI = {
     openPreview: "Open preview",
     passport: "Design passport",
     kit: "Page kit (.zip)",
+    kitTitle: "Page kit",
+    kitBrand: "Brand name (blank = auto)",
+    kitHeadline: "Headline (optional)",
+    kitCta: "CTA button label (optional)",
+    kitLanding: "Landing",
+    kitDashboard: "Dashboard",
+    kitComponents: "Gallery",
+    kitPricing: "Pricing",
+    aiPrompt: "e.g. Booking page for a yoga studio — class intro and pricing table",
+    aiGenerate: "Generate custom page (on-device AI)",
+    aiWorking: "Composing with on-device AI…",
+    aiDownloading: "Downloading on-device model… this may take a while on first use.",
+    aiDone: "Custom page added — included in the kit zip.",
+    aiFail: "AI could not produce a valid structure. Try a more specific description.",
+    kitNoPages: "Select at least one page.",
     settings: "Settings",
     statusAnalyzing: "Analyzing page…",
     statusGenerating: "Generating document…",
@@ -76,6 +91,21 @@ const AZUKI_UI = {
     openPreview: "미리보기 열기",
     passport: "디자인 여권",
     kit: "페이지 키트 (.zip)",
+    kitTitle: "페이지 키트",
+    kitBrand: "브랜드명 (비우면 자동)",
+    kitHeadline: "헤드라인 (선택)",
+    kitCta: "CTA 버튼 문구 (선택)",
+    kitLanding: "랜딩",
+    kitDashboard: "대시보드",
+    kitComponents: "갤러리",
+    kitPricing: "가격",
+    aiPrompt: "예: 요가 스튜디오 예약 페이지 — 수업 소개와 가격표 포함",
+    aiGenerate: "AI 맞춤 페이지 생성 (온디바이스)",
+    aiWorking: "온디바이스 AI로 구성 중…",
+    aiDownloading: "온디바이스 모델 다운로드 중… 처음 한 번은 시간이 걸릴 수 있어요.",
+    aiDone: "맞춤 페이지 추가됨 — 키트 zip에 포함됩니다.",
+    aiFail: "AI가 유효한 구조를 만들지 못했어요. 더 구체적으로 설명해 보세요.",
+    kitNoPages: "페이지를 하나 이상 선택하세요.",
     settings: "설정",
     statusAnalyzing: "페이지 분석 중…",
     statusGenerating: "문서 생성 중…",
@@ -136,5 +166,9 @@ export function applyI18n(root, lang) {
   (root || document).querySelectorAll("[data-i18n-title]").forEach((el) => {
     const v = t[el.getAttribute("data-i18n-title")];
     if (typeof v === "string") el.title = v;
+  });
+  (root || document).querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const v = t[el.getAttribute("data-i18n-placeholder")];
+    if (typeof v === "string") el.placeholder = v;
   });
 }
