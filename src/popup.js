@@ -123,6 +123,7 @@ function render() {
   fpEl.style.display = 'block';
   window.__fingerprint = fp; // E2E 검증용
   window.__agentPrompt = DesignGenerator.exportAgentPrompt(data, opts.lang); // E2E 검증용
+  window.__kitFiles = DesignGenerator.exportKit(data, opts.lang); // E2E 검증용 (zip은 클릭 시 생성)
 
   $('preview').textContent = previewText;
   $('result').style.display = 'block';
@@ -224,6 +225,17 @@ function downloadText(content, filename, mime) {
 for (const e of EXPORTERS) {
   $(e.id).addEventListener('click', () => downloadText(outputs[e.id], e.file, e.mime));
 }
+
+// 페이지 키트: 스타터 페이지 묶음을 zip으로 다운로드
+$('download-kit').addEventListener('click', () => {
+  if (!lastData) return;
+  const files = DesignGenerator.exportKit(lastData, opts.lang);
+  const zip = DesignGenerator.buildKitZip(files, new Date());
+  const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
+  chrome.downloads.download({ url, filename: 'azuki-page-kit.zip', saveAs: opts.saveAsDialog }, () => {
+    URL.revokeObjectURL(url);
+  });
+});
 
 $('download-shot').addEventListener('click', async () => {
   try {
