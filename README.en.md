@@ -70,7 +70,7 @@ src/
   popup.html/.js/.css  [panel] run analysis, preview, export UI
   options.html/.js/.css[settings] options, language, contact
   i18n.js              runtime UI strings (en/ko) + apply helpers
-  ui/theme.css         shared brand tokens (:root) + reset (single source, BRAND.md)
+  ui/theme.css         shared brand tokens (:root) + reset (single source: DESIGN.md, the product design system)
   generator/           analysis JSON → docs/tokens/signature (ESM modules)
     core.js            shared state · color/token/scale/mood/frontmatter engine
     doc.js             generate() — assembles DESIGN.md (sections 1–11)
