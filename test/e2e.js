@@ -243,8 +243,12 @@ async function main() {
     const kitFiles = await popup.evaluate(() => window.__kitFiles);
     const kitByName = Object.fromEntries((kitFiles || []).map((f) => [f.name, f.content]));
     const KIT_EXPECT = ['index.html', 'auth.html', 'dashboard.html', 'pricing.html', 'blog.html', 'docs.html', 'legal.html', 'contact.html', 'components.html',
-      'DESIGN.md', 'styles/tokens.css', 'styles/kit.css', 'snippets/analytics.html', 'i18n/strings.json', 'llms.txt', 'robots.txt', 'vercel.json', 'netlify.toml', 'README.md'];
-    check('런치 키트 파일 19종', (kitFiles || []).length === KIT_EXPECT.length && KIT_EXPECT.every((n) => !!kitByName[n]));
+      '404.html', 'DESIGN.md', 'assets/css/tokens.css', 'assets/css/kit.css', 'assets/favicon.svg', 'snippets/analytics.html', 'i18n/strings.json',
+      'llms.txt', 'robots.txt', 'sitemap.xml', '.gitignore', 'vercel.json', 'netlify.toml', 'README.md'];
+    check('런치 키트 파일 23종 (상용 구조)', (kitFiles || []).length === KIT_EXPECT.length && KIT_EXPECT.every((n) => !!kitByName[n]));
+    check('키트 파비콘·사이트맵', (kitByName['assets/favicon.svg'] || '').includes('<svg') && (kitByName['sitemap.xml'] || '').includes('<urlset'));
+    check('키트 404 페이지', (kitByName['404.html'] || '').includes('404'));
+    check('AI 구조 스키마 export', await popup.evaluate(() => !!window.DesignGenerator.KIT_STRUCTURE_SCHEMA && window.DesignGenerator.customKitFewShot('ko').length === 2));
     check('키트 DESIGN.md 동봉', (kitByName['DESIGN.md'] || '').includes('#e11d48'));
     check('키트 인증 페이지 (소셜 로그인)', (kitByName['auth.html'] || '').includes('social-btn') && (kitByName['auth.html'] || '').includes('Google'));
     check('키트 챗봇 위젯 (랜딩, CSS 전용)', (kitByName['index.html'] || '').includes('chat-fab') && !(kitByName['index.html'] || '').toLowerCase().includes('<script'));
@@ -253,8 +257,8 @@ async function main() {
     check('키트 다국어 문자열', (() => { try { const j = JSON.parse(kitByName['i18n/strings.json']); return !!j.en && !!j.ko; } catch (e) { return false; } })());
     check('키트 배포 설정', (kitByName['vercel.json'] || '').includes('cleanUrls') && (kitByName['netlify.toml'] || '').includes('publish'));
     check('키트 법률·문의 페이지', (kitByName['legal.html'] || '').includes('id="privacy"') && (kitByName['contact.html'] || '').includes('<form'));
-    check('키트 랜딩에 토큰 참조', (kitByName['styles/kit.css'] || '').includes('var(--color-'));
-    check('키트에 Primary 반영', (kitByName['styles/kit.css'] || '').toLowerCase().includes('#e11d48') || (kitByName['styles/tokens.css'] || '').includes('--color-primary: #e11d48'));
+    check('키트 랜딩에 토큰 참조', (kitByName['assets/css/kit.css'] || '').includes('var(--color-'));
+    check('키트에 Primary 반영', (kitByName['assets/css/kit.css'] || '').toLowerCase().includes('#e11d48') || (kitByName['assets/css/tokens.css'] || '').includes('--color-primary: #e11d48'));
     check('키트 갤러리에 스와치', (kitByName['components.html'] || '').includes('--color-canvas'));
     check('키트 XSS 이스케이프 (script 태그 없음)', !(kitByName['index.html'] || '').toLowerCase().includes('<script') && !(kitByName['components.html'] || '').toLowerCase().includes('<script'));
     const zipHead = await popup.evaluate(() => {

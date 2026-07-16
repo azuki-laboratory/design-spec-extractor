@@ -2,10 +2,10 @@
 import { generate } from './doc.js';
 import { exportTokens, merge, exportPreview, exportTailwind, exportAgentPrompt } from './exporters.js';
 import { computeDNA, computeLint, mascotComment, designFingerprint, exportPassport } from './signature.js';
-import { exportKit, buildKitZip, buildCustomKitPage, customKitSystemPrompt, parseKitStructure } from './kit.js';
+import { exportKit, buildKitZip, buildCustomKitPage, customKitSystemPrompt, customKitFewShot, parseKitStructure, KIT_STRUCTURE_SCHEMA } from './kit.js';
 
 export const DesignGenerator = {
   generate, exportTokens, merge, exportPreview, exportTailwind,
   computeDNA, computeLint, mascotComment, exportAgentPrompt, designFingerprint, exportPassport,
-  exportKit, buildKitZip, buildCustomKitPage, customKitSystemPrompt, parseKitStructure,
+  exportKit, buildKitZip, buildCustomKitPage, customKitSystemPrompt, customKitFewShot, parseKitStructure, KIT_STRUCTURE_SCHEMA,
 };
