@@ -77,6 +77,9 @@ const AZUKI_UI = {
     saveAsLabel: "Ask for location on download",
     saveAsHint:
       "Off saves straight to your Downloads folder. On asks where to save each time.",
+    aiCustomLabel: "Extra instructions for AI custom pages",
+    aiCustomHint: "Rules the on-device AI always follows when composing a custom page — tone, industry terms, must-have sections. Raises output quality.",
+    aiCustomPh: "e.g. Keep a friendly tone, no hype words, always include a pricing section",
     darkLabel: "Include dark-mode palette",
     darkHint:
       "When the page has <code>prefers-color-scheme: dark</code> overrides, include the dark palette in the output document/tokens.",
@@ -161,6 +164,9 @@ const AZUKI_UI = {
     saveAsLabel: "다운로드 시 위치 묻기",
     saveAsHint:
       "끄면 “다운로드” 폴더로 바로 저장됩니다. 켜면 저장 위치를 매번 물어봐요.",
+    aiCustomLabel: "AI 맞춤 페이지 추가 지시",
+    aiCustomHint: "온디바이스 AI가 맞춤 페이지를 구성할 때 항상 따르는 규칙 — 톤·업종 용어·필수 섹션. 결과 품질이 올라갑니다.",
+    aiCustomPh: "예: 존댓말 유지, 과장 표현 금지, 항상 가격 섹션 포함",
     darkLabel: "다크 모드 팔레트 포함",
     darkHint:
       "페이지가 <code>prefers-color-scheme: dark</code> 재정의를 가질 때, 결과 문서/토큰에 다크 팔레트를 함께 넣습니다.",

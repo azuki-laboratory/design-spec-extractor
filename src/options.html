@@ -121,6 +121,16 @@
           </div>
         </div>
 
+        <div class="opt" style="flex-direction: column; align-items: stretch">
+          <div>
+            <div class="label" data-i18n="aiCustomLabel">AI 맞춤 페이지 추가 지시</div>
+            <div class="hint" data-i18n="aiCustomHint">
+              온디바이스 AI가 맞춤 페이지를 구성할 때 항상 따르는 규칙. 톤·업종·금지 표현 등을 적어두면 결과 품질이 올라갑니다.
+            </div>
+          </div>
+          <textarea id="aiCustom" rows="3" maxlength="500" data-i18n-placeholder="aiCustomPh" placeholder="예: 존댓말 유지, 과장 표현 금지, 항상 가격 섹션 포함"></textarea>
+        </div>
+
         <div class="row">
           <button id="save" data-i18n="save">저장</button>
           <button id="reset" data-i18n="reset">기본값으로</button>

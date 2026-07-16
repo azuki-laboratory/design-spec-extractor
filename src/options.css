@@ -329,3 +329,21 @@ footer {
   font-size: 12px;
   color: var(--azuki-ink-mute);
 }
+/* AI 추가 지시 textarea */
+#aiCustom {
+  width: 100%;
+  margin-top: 10px;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 11px;
+  border: 1px solid var(--azuki-ink);
+  border-radius: var(--radius-control);
+  background: var(--azuki-cream);
+  color: var(--azuki-ink);
+  resize: vertical;
+}
+#aiCustom:focus-visible {
+  outline: 2px solid var(--azuki-blue-soft);
+  outline-offset: 1px;
+  border-color: var(--azuki-blue);
+}

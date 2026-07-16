@@ -3,7 +3,7 @@
 
 import { AZUKI_T, applyI18n } from './i18n.js';
 
-const DEFAULT_OPTS = { lang: 'en', maxElements: 4000, saveAsDialog: true, includeDarkPalette: true };
+const DEFAULT_OPTS = { lang: 'en', maxElements: 4000, saveAsDialog: true, includeDarkPalette: true, aiCustom: '' };
 const CONTACT_EMAIL = 'lab.azukki@gmail.com';
 
 const $ = (id) => document.getElementById(id);
@@ -45,6 +45,7 @@ function readForm() {
     maxElements: n,
     saveAsDialog: $('saveAsDialog').checked,
     includeDarkPalette: $('includeDarkPalette').checked,
+    aiCustom: $('aiCustom').value.trim().slice(0, 500),
   };
 }
 
@@ -53,6 +54,7 @@ function writeForm(o) {
   $('maxElements').value = o.maxElements;
   $('saveAsDialog').checked = o.saveAsDialog;
   $('includeDarkPalette').checked = o.includeDarkPalette;
+  $('aiCustom').value = o.aiCustom || '';
 }
 
 // 현재 언어로 정적 UI + 제목 + 버전 + mailto 갱신
