@@ -13,7 +13,6 @@ window.DesignGenerator = DesignGenerator;
 const $ = (id) => document.getElementById(id);
 let analyses = [];      // 누적된 페이지별 분석 결과
 let outputs = {};       // 버튼 id -> 생성된 문자열 (현재 분석 기준)
-let lastTab = null;     // 스크린샷 대상
 let lastData = null;    // 에이전트 프롬프트 복사용 (현재 병합/필터된 data)
 
 // 사용자 옵션 — 설정 페이지(options.html)에서 chrome.storage.sync에 저장.
@@ -34,11 +33,12 @@ async function loadOpts() {
 
 // 산출물 레지스트리 — 새 포맷은 여기 한 줄만 추가하면 배선·다운로드·미리보기가 자동 연결된다.
 // fn(data) => 문자열. win: E2E 검증용 window 전역 이름(선택).
+// noBtn: 다운로드 버튼 없이 내부 사용만 (preview.html은 '미리보기 열기' 전용)
 const EXPORTERS = [
   { id: 'download', file: 'DESIGN.md', mime: 'text/markdown', fn: (d) => DesignGenerator.generate(d, opts.lang), preview: true },
   { id: 'download-css', file: 'tokens.css', mime: 'text/css', fn: (d) => DesignGenerator.exportTokens(d, opts.lang).css, win: '__tokensCss' },
   { id: 'download-json', file: 'tokens.json', mime: 'application/json', fn: (d) => DesignGenerator.exportTokens(d, opts.lang).json, win: '__tokensJson' },
-  { id: 'download-html', file: 'preview.html', mime: 'text/html', fn: (d) => DesignGenerator.exportPreview(d, opts.lang), win: '__previewHtml' },
+  { id: 'download-html', file: 'preview.html', mime: 'text/html', fn: (d) => DesignGenerator.exportPreview(d, opts.lang), win: '__previewHtml', noBtn: true },
   { id: 'download-tw', file: 'tailwind.config.js', mime: 'text/javascript', fn: (d) => DesignGenerator.exportTailwind(d, opts.lang), win: '__tailwindCfg' },
   { id: 'download-passport', file: 'passport.svg', mime: 'image/svg+xml', fn: (d) => DesignGenerator.exportPassport(d, opts.lang), win: '__passportSvg' },
 ];
@@ -123,8 +123,14 @@ function render() {
   fpEl.style.display = 'block';
   window.__fingerprint = fp; // E2E 검증용
   window.__agentPrompt = DesignGenerator.exportAgentPrompt(data, opts.lang); // E2E 검증용
-  window.__kitFiles = DesignGenerator.exportKit(data, opts.lang); // E2E 검증용 (zip은 클릭 시 생성)
+  window.__kitFiles = DesignGenerator.exportKit(data, opts.lang, { designMd: outputs['download'] }); // E2E 검증용 (zip은 클릭 시 생성)
   window.__analysisData = data; // E2E 검증용 (맞춤 키트 옵션 테스트)
+
+  // 자연스러운 흐름: 분석 완료 → 키트 구역 잠금 해제 + 첫 완료 시 시선 유도
+  const kitPanel = $('kit-panel');
+  const firstUnlock = kitPanel.getAttribute('aria-disabled') === 'true';
+  kitPanel.setAttribute('aria-disabled', 'false');
+  if (firstUnlock) kitPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   $('preview').textContent = previewText;
   $('result').style.display = 'block';
@@ -149,7 +155,6 @@ async function runAnalysis(accumulate) {
 
     const tab = await findTargetTab();
     if (!tab) throw new Error(t().errNoTab);
-    lastTab = tab;
 
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -223,24 +228,26 @@ function downloadText(content, filename, mime) {
   });
 }
 
-// 레지스트리 기반 다운로드 배선
+// 레지스트리 기반 다운로드 배선 (noBtn 산출물은 버튼 없이 내부 사용만)
 for (const e of EXPORTERS) {
+  if (e.noBtn) continue;
   $(e.id).addEventListener('click', () => downloadText(outputs[e.id], e.file, e.mime));
 }
 
 /* ---------- 페이지 키트 (맞춤 옵션 + 온디바이스 AI) ---------- */
 let customPage = null; // AI가 만든 custom.html (분석 갱신 시 초기화)
+const KIT_PAGE_IDS = ['landing', 'auth', 'dashboard', 'pricing', 'blog', 'docs', 'legal', 'contact', 'components'];
 
-// 패널 입력값 → kitOpts
+// 패널 입력값 → kitOpts. DESIGN.md는 항상 키트에 동봉.
 function getKitOpts() {
-  const pages = ['landing', 'dashboard', 'components', 'pricing']
-    .filter((p) => $(`kit-p-${p}`).checked);
+  const pages = KIT_PAGE_IDS.filter((p) => $(`kit-p-${p}`).checked);
   return {
     brand: $('kit-brand').value.trim(),
     headline: $('kit-headline').value.trim(),
     cta: $('kit-cta').value.trim(),
     pages,
     customPage,
+    designMd: outputs['download'] || '',
   };
 }
 
@@ -303,12 +310,3 @@ $('ai-generate').addEventListener('click', async () => {
   }
 });
 
-$('download-shot').addEventListener('click', async () => {
-  try {
-    const dataUrl = await chrome.tabs.captureVisibleTab(lastTab ? lastTab.windowId : undefined, { format: 'png' });
-    chrome.downloads.download({ url: dataUrl, filename: 'screenshot.png', saveAs: opts.saveAsDialog });
-  } catch (e) {
-    $('status').className = 'error';
-    $('status').textContent = t().shotFail + (e.message || e);
-  }
-});
