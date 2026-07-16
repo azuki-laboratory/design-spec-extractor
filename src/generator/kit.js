@@ -133,18 +133,52 @@ function buildKitCss(data, tokens) {
   c.push('details summary { cursor: pointer; font-weight: 600; }');
   c.push('details p { margin-top: 8px; }');
   c.push('footer.site { border-top: 1px solid var(--color-hairline, #eee); }');
-  c.push('@media (max-width: 720px) { .dash { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--color-hairline, #eee); } }');
+  // 인증 (소셜 로그인 버튼)
+  c.push(`.auth-card { max-width: 400px; margin: 0 auto; }`);
+  c.push(`.social-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; border: 1px solid var(--color-hairline, #ddd); border-radius: var(--radius-sm, 6px); background: #fff; color: var(--color-ink, ${cssSafe(ink)}); cursor: pointer; font-weight: 500; text-decoration: none; }`);
+  c.push('.social-btn:hover { filter: brightness(0.96); }');
+  c.push(`.divider { display: flex; align-items: center; gap: 10px; color: var(--color-ink-mute, #888); font-size: 12px; } .divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--color-hairline, #eee); }`);
+  // 알림 (토스트·배너)
+  c.push(`.toast { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-sm, 8px); background: var(--color-ink, ${cssSafe(ink)}); color: var(--color-canvas, #fff); font-size: 14px;${shadow ? ` box-shadow: ${cssSafe(shadow)};` : ''} }`);
+  c.push(`.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-radius: var(--radius-sm, 8px); background: var(--color-canvas-soft, #f5f5f5); border: 1px solid var(--color-hairline, #eee); font-size: 14px; }`);
+  // 파일 업로드
+  c.push(`.upload { display: grid; gap: 6px; justify-items: center; padding: 28px; border: 2px dashed var(--color-hairline, #ccc); border-radius: var(--radius-md, 10px); text-align: center; color: var(--color-ink-mute, #888); cursor: pointer; }`);
+  c.push(`.upload:hover { border-color: var(--color-primary, ${cssSafe(primary)}); }`);
+  // 지식 검색
+  c.push('.search { position: relative; max-width: 420px; width: 100%; }');
+  c.push('.search .input { padding-left: 34px; }');
+  c.push(`.search::before { content: "🔍"; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; }`);
+  // AI 챗봇 위젯 (CSS 전용 — 체크박스 토글, 스크립트 0)
+  c.push('.chat-toggle { display: none; }');
+  c.push(`.chat-fab { position: fixed; right: 20px; bottom: 20px; z-index: 90; width: 54px; height: 54px; border-radius: 50%; background: var(--color-primary, ${cssSafe(primary)}); color: ${cssSafe(onPrimary)}; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer;${shadow ? ` box-shadow: ${cssSafe(shadow)};` : ''} }`);
+  c.push(`.chat-panel { position: fixed; right: 20px; bottom: 84px; z-index: 90; width: 300px; display: none; flex-direction: column; gap: 10px; padding: 14px; background: var(--color-canvas, #fff); border: 1px solid var(--color-hairline, #ddd); border-radius: var(--radius-md, 12px);${shadow ? ` box-shadow: ${cssSafe(shadow)};` : ''} }`);
+  c.push('.chat-toggle:checked ~ .chat-panel { display: flex; }');
+  c.push(`.chat-msg { padding: 8px 12px; border-radius: var(--radius-sm, 8px); background: var(--color-canvas-soft, #f5f5f5); font-size: 13px; }`);
+  // 블로그·문서
+  c.push('.post { display: grid; gap: 6px; }');
+  c.push('.post .meta { font-size: 12px; }');
+  c.push('.docs { display: grid; grid-template-columns: 220px 1fr; gap: 32px; align-items: start; }');
+  c.push('.docs nav.toc { position: sticky; top: 90px; display: grid; gap: 4px; font-size: 14px; }');
+  c.push('.docs nav.toc a { color: inherit; padding: 4px 8px; border-radius: 4px; }');
+  c.push(`.docs nav.toc a.active { background: var(--color-canvas-soft, #f5f5f5); font-weight: 600; }`);
+  c.push('@media (max-width: 720px) { .dash { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--color-hairline, #eee); } .docs { grid-template-columns: 1fr; } .docs nav.toc { position: static; } }');
   return c.join('\n');
 }
 
-/* ---------- HTML 골격 ---------- */
-function page(title, bodyHtml) {
+/* ---------- HTML 골격 (SEO 메타 + OG 태그) ---------- */
+function page(title, bodyHtml, desc) {
+  const d = htmlEsc((desc || title || '').slice(0, 160));
   return `<!DOCTYPE html>
 <html lang="${state.LANG}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${htmlEsc(title)}</title>
+<meta name="description" content="${d}">
+<meta property="og:title" content="${htmlEsc(title)}">
+<meta property="og:description" content="${d}">
+<meta property="og:type" content="website">
+<!-- TODO: og:image, canonical URL 배포 시 설정 -->
 <link rel="stylesheet" href="styles/tokens.css">
 <link rel="stylesheet" href="styles/kit.css">
 </head>
@@ -155,24 +189,64 @@ ${bodyHtml}
 `;
 }
 
+const PAGE_META = {
+  landing: { file: 'index.html' },
+  auth: { file: 'auth.html' },
+  dashboard: { file: 'dashboard.html' },
+  pricing: { file: 'pricing.html' },
+  blog: { file: 'blog.html' },
+  docs: { file: 'docs.html' },
+  legal: { file: 'legal.html' },
+  contact: { file: 'contact.html' },
+  components: { file: 'components.html' },
+};
+const pageLabel = (p) => ({
+  landing: T('Home', '홈'), auth: T('Sign in', '로그인'), dashboard: T('Dashboard', '대시보드'),
+  pricing: T('Pricing', '가격'), blog: T('Blog', '블로그'), docs: T('Docs', '문서'),
+  legal: T('Legal', '법률'), contact: T('Contact', '문의'), components: T('Components', '컴포넌트'),
+}[p]);
+
 function navHtml(brand, pages, active) {
-  const label = { landing: T('Home', '홈'), dashboard: T('Dashboard', '대시보드'), components: T('Components', '컴포넌트'), pricing: T('Pricing', '가격') };
-  const href = { landing: 'index.html', dashboard: 'dashboard.html', components: 'components.html', pricing: 'pricing.html' };
-  const links = pages.map((p) =>
-    `<li><a href="${href[p]}"${active === p ? ' style="font-weight:700"' : ''}>${label[p]}</a></li>`).join('\n    ');
+  // 상단 내비: 마케팅 링크만. 로그인·시작하기는 우측 액션.
+  const navPages = ['landing', 'pricing', 'blog', 'docs', 'contact', 'components', 'dashboard'].filter((p) => pages.includes(p));
+  const links = navPages.map((p) =>
+    `<li><a href="${PAGE_META[p].file}"${active === p ? ' style="font-weight:700"' : ''}>${pageLabel(p)}</a></li>`).join('\n    ');
+  const authLink = pages.includes('auth') ? `<li><a class="btn-secondary" href="auth.html">${T('Sign in', '로그인')}</a></li>` : '';
   return `<nav class="nav"><div class="container nav-inner">
   <a class="brand" href="${pages.includes('landing') ? 'index.html' : '#'}">${htmlEsc(brand)}</a>
   <ul class="nav-links">
     ${links}
+    ${authLink}
     <li><a class="btn-primary" href="#">${T('Get started', '시작하기')}</a></li>
   </ul>
 </div></nav>`;
 }
 
-function footerHtml(brand) {
-  return `<footer class="site section"><div class="container row" style="justify-content:space-between">
-  <span class="muted">© ${htmlEsc(brand)}</span>
-  <span class="muted">${T('Built with the Azuki page kit', 'Azuki 페이지 키트로 제작')}</span>
+/* AI 챗봇 위젯 (CSS 전용) — 랜딩·문서 페이지에 삽입 */
+function chatWidgetHtml() {
+  return `<!-- AI 챗봇 위젯: UI 스캐폴드. 실제 응답은 README의 '챗봇 연결' 참고 -->
+<input type="checkbox" id="chat-open" class="chat-toggle">
+<div class="chat-panel">
+  <b>${T('Assistant', '어시스턴트')}</b>
+  <div class="chat-msg">${T('Hi! Ask me anything about this product.', '안녕하세요! 무엇이든 물어보세요.')}</div>
+  <input class="input" type="text" placeholder="${T('Type a message…', '메시지를 입력하세요…')}">
+</div>
+<label class="chat-fab" for="chat-open" title="${T('Chat', '채팅')}">💬</label>`;
+}
+
+function footerHtml(brand, pages) {
+  const legalLink = pages && pages.includes('legal') ? `<a href="legal.html">${T('Privacy · Terms', '개인정보 · 약관')}</a>` : '';
+  return `<footer class="site section"><div class="container stack">
+  <!-- 뉴스레터 구독: form action을 이메일 서비스(예: Buttondown/Mailchimp) 엔드포인트로 교체 -->
+  <form class="row" action="#" method="post" style="justify-content:center">
+    <input class="input" type="email" name="email" placeholder="${T('Email for updates', '소식 받을 이메일')}" style="max-width:320px;width:100%">
+    <button class="btn-secondary" type="submit">${T('Subscribe', '구독하기')}</button>
+  </form>
+  <div class="row" style="justify-content:space-between">
+    <span class="muted">© ${htmlEsc(brand)}</span>
+    ${legalLink}
+    <span class="muted">${T('Built with the Azuki page kit', 'Azuki 페이지 키트로 제작')}</span>
+  </div>
 </div></footer>`;
 }
 
@@ -267,7 +341,112 @@ function landingHtml(data, brand, pages, ko) {
   ];
   return `${navHtml(brand, pages, 'landing')}
 ${renderSections(sections)}
-${footerHtml(brand)}`;
+${footerHtml(brand, pages)}
+${chatWidgetHtml()}`;
+}
+
+/* 인증: 이메일 + 소셜 로그인 (Google/GitHub) — UI 스캐폴드, 역할 안내 주석 포함 */
+function authHtml(data, brand, pages) {
+  return `${navHtml(brand, pages, 'auth')}
+<main class="section"><div class="container auth-card stack">
+  <div style="text-align:center"><h2>${T('Welcome back', '다시 만나 반가워요')}</h2><p class="muted">${T('Sign in to continue', '계속하려면 로그인하세요')}</p></div>
+  <div class="card stack" style="gap:12px">
+    <!-- 소셜 로그인: href를 OAuth 엔드포인트로 교체 (README '인증 연결' 참고) -->
+    <a class="social-btn" href="#">🟦 ${T('Continue with Google', 'Google로 계속하기')}</a>
+    <a class="social-btn" href="#">⬛ ${T('Continue with GitHub', 'GitHub로 계속하기')}</a>
+    <div class="divider">${T('or', '또는')}</div>
+    <input class="input" type="email" placeholder="you@example.com">
+    <input class="input" type="password" placeholder="${T('Password', '비밀번호')}">
+    <button class="btn-primary" type="button">${T('Sign in', '로그인')}</button>
+    <p class="muted" style="font-size:13px;text-align:center">${T('No account?', '계정이 없나요?')} <a href="#">${T('Sign up', '가입하기')}</a></p>
+  </div>
+  <!-- 역할(roles): 로그인 후 사용자 역할(admin/member/viewer)에 따라 dashboard.html 메뉴를 분기.
+       정적 키트에서는 주석으로 표시 — 실제 분기는 README '인증 연결' 참고 -->
+</div></main>
+${footerHtml(brand, pages)}`;
+}
+
+/* 블로그: 목록 + SEO 힌트 */
+function blogHtml(data, brand, pages) {
+  const posts = [
+    [T('Why design tokens matter', '디자인 토큰이 중요한 이유'), T('Tokens keep every page consistent as you grow.', '토큰은 서비스가 커져도 모든 페이지를 일관되게 지켜줍니다.')],
+    [T('Shipping your first landing page', '첫 랜딩 페이지 배포하기'), T('From zip to live site in five minutes.', 'zip에서 라이브 사이트까지 5분.')],
+    [T('Building trust with legal pages', '법률 페이지로 신뢰 쌓기'), T('Privacy and terms are part of the product.', '개인정보처리방침과 약관도 제품의 일부입니다.')],
+  ].map(([t2, b]) => `<article class="card post">
+      <span class="badge">${T('Post', '글')}</span>
+      <h3><a href="#">${t2}</a></h3>
+      <p class="muted">${b}</p>
+      <span class="meta muted">2026-01-01 · ${T('3 min read', '3분 읽기')}</span>
+    </article>`).join('\n    ');
+  return `${navHtml(brand, pages, 'blog')}
+<main class="section"><div class="container stack">
+  <div><h1>${T('Blog', '블로그')}</h1><p class="muted">${T('Each post page should set its own title/description meta tags for SEO.', 'SEO를 위해 글마다 title/description 메타 태그를 설정하세요.')}</p></div>
+  <div class="grid-3">
+    ${posts}
+  </div>
+</div></main>
+${footerHtml(brand, pages)}`;
+}
+
+/* 문서: 사이드 목차 + 지식 검색 UI */
+function docsHtml(data, brand, pages) {
+  return `${navHtml(brand, pages, 'docs')}
+<main class="section"><div class="container stack">
+  <div class="row" style="justify-content:space-between"><h1>${T('Documentation', '문서')}</h1>
+    <!-- 지식 검색: 정적 UI. 실제 검색은 README '챗봇·검색 연결' 참고 -->
+    <div class="search"><input class="input" type="search" placeholder="${T('Search docs…', '문서 검색…')}"></div>
+  </div>
+  <div class="docs">
+    <nav class="toc">
+      <a class="active" href="#">${T('Getting started', '시작하기')}</a>
+      <a href="#">${T('Tokens', '토큰')}</a>
+      <a href="#">${T('Components', '컴포넌트')}</a>
+      <a href="#">${T('Deploy', '배포')}</a>
+    </nav>
+    <article class="stack">
+      <h2>${T('Getting started', '시작하기')}</h2>
+      <p>${T('Unzip the kit and open index.html. Edit styles/tokens.css to adjust the design — every page follows.', '키트 압축을 풀고 index.html을 여세요. styles/tokens.css를 수정하면 모든 페이지에 반영됩니다.')}</p>
+      <div class="card"><b>${T('Tip', '팁')}</b> — ${T('Give DESIGN.md to your AI coding agent as the style contract.', 'DESIGN.md를 AI 코딩 에이전트에게 스타일 기준으로 전달하세요.')}</div>
+    </article>
+  </div>
+</div></main>
+${footerHtml(brand, pages)}
+${chatWidgetHtml()}`;
+}
+
+/* 법률: 개인정보처리방침 + 이용약관 골격 */
+function legalHtml(data, brand, pages) {
+  return `${navHtml(brand, pages, 'legal')}
+<main class="section"><div class="container stack" style="max-width:760px">
+  <h1>${T('Legal', '법률 고지')}</h1>
+  <section class="card stack" id="privacy">
+    <h2>${T('Privacy Policy', '개인정보처리방침')}</h2>
+    <p class="muted">${T('Describe what data you collect, why, how long you keep it, and how users can request deletion. Replace this placeholder before launch.', '수집하는 데이터, 목적, 보관 기간, 삭제 요청 방법을 설명하세요. 출시 전 반드시 실제 내용으로 교체해야 합니다.')}</p>
+  </section>
+  <section class="card stack" id="terms">
+    <h2>${T('Terms of Service', '이용약관')}</h2>
+    <p class="muted">${T('Service scope, user obligations, liability limits, governing law. This scaffold is not legal advice.', '서비스 범위, 이용자 의무, 책임 한계, 준거법. 이 골격은 법률 자문이 아닙니다.')}</p>
+  </section>
+</div></main>
+${footerHtml(brand, pages)}`;
+}
+
+/* 문의: 폼 + 뉴스레터 */
+function contactHtml(data, brand, pages) {
+  return `${navHtml(brand, pages, 'contact')}
+<main class="section"><div class="container stack" style="max-width:560px">
+  <div><h1>${T('Contact', '문의하기')}</h1><p class="muted">${T('Form posts nowhere yet — point the action at your email service or backend (see README).', '폼 action이 비어 있어요 — 이메일 서비스나 백엔드 주소로 연결하세요 (README 참고).')}</p></div>
+  <!-- action을 Formspree/자체 API 엔드포인트로 교체 -->
+  <form class="card stack" action="#" method="post">
+    <input class="input" type="text" name="name" placeholder="${T('Name', '이름')}" required>
+    <input class="input" type="email" name="email" placeholder="you@example.com" required>
+    <textarea class="input" name="message" rows="5" placeholder="${T('How can we help?', '무엇을 도와드릴까요?')}" required></textarea>
+    <!-- 파일 업로드: 첨부가 필요 없으면 이 라벨 블록 삭제 -->
+    <label class="upload">📎 ${T('Attach a file (optional)', '파일 첨부 (선택)')}<input type="file" hidden></label>
+    <button class="btn-primary" type="submit">${T('Send message', '보내기')}</button>
+  </form>
+</div></main>
+${footerHtml(brand, pages)}`;
 }
 
 function dashboardHtml(data, brand, pages) {
@@ -284,6 +463,8 @@ function dashboardHtml(data, brand, pages) {
     <a href="#">${T('Settings', '설정')}</a>
   </aside>
   <main class="main stack">
+    <!-- 알림 배너: 공지·경고에 사용 -->
+    <div class="banner"><span>🔔 ${T('Notifications appear here — releases, limits, billing.', '알림은 여기에 — 릴리스, 한도, 결제 소식.')}</span><button class="btn-secondary" type="button">${T('Dismiss', '닫기')}</button></div>
     <h2>${T('Overview', '개요')}</h2>
     <div class="grid-3">
       <div class="card stat"><span class="muted">${T('Visitors', '방문자')}</span><span class="num">12,480</span></div>
@@ -336,8 +517,20 @@ function componentsHtml(data, tokens, brand, pages) {
   <section class="stack"><h2>${T('Radius scale', '반경 스케일')}</h2><div class="row">
     ${radii}
   </div></section>
+  <section class="stack"><h2>${T('Notifications', '알림')}</h2><div class="card stack">
+    <span class="toast">✓ ${T('Saved successfully', '저장되었습니다')}</span>
+    <div class="banner"><span>🔔 ${T('New version available', '새 버전이 나왔어요')}</span><button class="btn-secondary" type="button">${T('Dismiss', '닫기')}</button></div>
+  </div></section>
+  <section class="stack"><h2>${T('Upload & search', '업로드 & 검색')}</h2><div class="card stack">
+    <label class="upload">📎 ${T('Drop a file or click to upload', '파일을 끌어오거나 클릭해 업로드')}<input type="file" hidden></label>
+    <div class="search"><input class="input" type="search" placeholder="${T('Search…', '검색…')}"></div>
+  </div></section>
+  <section class="stack"><h2>${T('Social sign-in', '소셜 로그인')}</h2><div class="card stack" style="max-width:360px">
+    <a class="social-btn" href="#">🟦 ${T('Continue with Google', 'Google로 계속하기')}</a>
+    <a class="social-btn" href="#">⬛ ${T('Continue with GitHub', 'GitHub로 계속하기')}</a>
+  </div></section>
 </div></main>
-${footerHtml(brand)}`;
+${footerHtml(brand, pages)}`;
 }
 
 function pricingHtml(data, brand, pages) {
@@ -354,61 +547,170 @@ function pricingHtml(data, brand, pages) {
   ];
   return `${navHtml(brand, pages, 'pricing')}
 ${renderSections(sections)}
-${footerHtml(brand)}`;
+${footerHtml(brand, pages)}`;
 }
 
-function readmeMd(data, hasCustom) {
-  const host = (() => { try { return new URL(data.meta.url).host; } catch (e) { return data.meta.url; } })();
-  const customRowEn = hasCustom ? '\n| `custom.html` | Page generated from your prompt (on-device AI) |' : '';
-  const customRowKo = hasCustom ? '\n| `custom.html` | 프롬프트로 생성한 맞춤 페이지 (온디바이스 AI) |' : '';
-  return T(`# Azuki Page Kit
+/* ---------- 부속 파일 (분석·배포·다국어·LLMO) ---------- */
+// GA4 + PostHog 스니펫 — 키트 페이지는 스크립트 0 유지, 필요할 때 <head>에 붙여넣는 방식
+function analyticsSnippetHtml() {
+  return `<!-- ${T('Analytics snippets — paste into <head> of each page when ready. IDs are placeholders.', '분석 스니펫 — 준비되면 각 페이지 <head>에 붙여넣으세요. ID는 플레이스홀더입니다.')} -->
 
-A starter page kit generated from the design analysis of **${host}**.
+<!-- Google Analytics 4 -->
+<!--
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+-->
+
+<!-- PostHog -->
+<!--
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_XXXXXXXXXX', {api_host: 'https://us.i.posthog.com'});
+</script>
+-->
+`;
+}
+
+// 다국어 스캐폴드 — 문구를 키로 분리해두면 번역 추가가 쉬움
+function i18nStringsJson(brand) {
+  return JSON.stringify({
+    _comment: T('Starter i18n strings. Render with your framework of choice, or swap text per locale build.', '다국어 스타터 문자열. 프레임워크로 렌더하거나 로케일별 빌드에서 교체하세요.'),
+    en: { brand, cta: 'Get started', signIn: 'Sign in', contact: 'Contact', subscribe: 'Subscribe' },
+    ko: { brand, cta: '시작하기', signIn: '로그인', contact: '문의하기', subscribe: '구독하기' },
+  }, null, 2);
+}
+
+// LLMO: AI 검색엔진용 사이트 요약 (https://llmstxt.org 관례)
+function llmsTxt(brand, host, pages) {
+  const list = pages.map((p) => `- [${pageLabel(p)}](/${PAGE_META[p].file})`).join('\n');
+  return `# ${brand}
+
+> ${T(`Starter site generated from the design of ${host}. Replace this summary with what your product does.`, `${host} 디자인으로 생성된 스타터 사이트. 이 요약을 제품 설명으로 교체하세요.`)}
+
+## ${T('Pages', '페이지')}
+
+${list}
+`;
+}
+
+function robotsTxt() {
+  return `User-agent: *
+Allow: /
+
+# ${T('Set your sitemap URL after deploy', '배포 후 sitemap URL을 설정하세요')}
+# Sitemap: https://example.com/sitemap.xml
+`;
+}
+
+const vercelJson = () => JSON.stringify({ cleanUrls: true, trailingSlash: false }, null, 2);
+const netlifyToml = () => `[build]
+  publish = "."
+`;
+
+function readmeMd(data, pages, hasCustom, hasDesignMd) {
+  const host = (() => { try { return new URL(data.meta.url).host; } catch (e) { return data.meta.url; } })();
+  const rowsEn = {
+    landing: '| `index.html` | Landing (hero, features, CTA, newsletter, AI chat widget) |',
+    auth: '| `auth.html` | Sign in / sign up — email + Google/GitHub social buttons, role notes |',
+    dashboard: '| `dashboard.html` | App dashboard (sidebar, stats, table, notification banner) |',
+    pricing: '| `pricing.html` | Pricing plans + FAQ (subscription billing UI) |',
+    blog: '| `blog.html` | Blog list with SEO guidance |',
+    docs: '| `docs.html` | Docs with sidebar TOC + knowledge search UI |',
+    legal: '| `legal.html` | Privacy policy + terms scaffold |',
+    contact: '| `contact.html` | Contact form + file upload + newsletter |',
+    components: '| `components.html` | Live gallery of every token & component |',
+  };
+  const rowsKo = {
+    landing: '| `index.html` | 랜딩 (히어로·기능·CTA·뉴스레터·AI 챗 위젯) |',
+    auth: '| `auth.html` | 로그인/가입 — 이메일 + Google/GitHub 소셜 버튼, 역할 주석 |',
+    dashboard: '| `dashboard.html` | 앱 대시보드 (사이드바·스탯·테이블·알림 배너) |',
+    pricing: '| `pricing.html` | 가격 플랜 + FAQ (구독 결제 UI) |',
+    blog: '| `blog.html` | 블로그 목록 + SEO 안내 |',
+    docs: '| `docs.html` | 문서 (사이드 목차 + 지식 검색 UI) |',
+    legal: '| `legal.html` | 개인정보처리방침·이용약관 골격 |',
+    contact: '| `contact.html` | 문의 폼 + 파일 업로드 + 뉴스레터 |',
+    components: '| `components.html` | 토큰·컴포넌트 전체 갤러리 |',
+  };
+  const pageRows = (rows) => pages.map((p) => rows[p]).filter(Boolean).join('\n');
+  const customEn = hasCustom ? '\n| `custom.html` | Page generated from your prompt (on-device AI) |' : '';
+  const customKo = hasCustom ? '\n| `custom.html` | 프롬프트로 생성한 맞춤 페이지 (온디바이스 AI) |' : '';
+  const designEn = hasDesignMd ? '\n| `DESIGN.md` | Your extracted design spec — give it to AI coding agents |' : '';
+  const designKo = hasDesignMd ? '\n| `DESIGN.md` | 추출된 디자인 스펙 — AI 코딩 에이전트에게 전달 |' : '';
+  return T(`# Azuki Launch Kit
+
+A launch-ready page kit generated from the design analysis of **${host}**.
+Static, dependency-free, zero scripts — open \`index.html\` right away.
 
 ## What's inside
 
 | File | Purpose |
 |------|---------|
-| \`index.html\` | Landing page (nav, hero, features, CTA, footer) |
-| \`dashboard.html\` | App dashboard (sidebar, stat cards, table, form) |
-| \`components.html\` | Live gallery of every extracted token & component |
-| \`pricing.html\` | Pricing page (plans + FAQ) |${customRowEn}
+${pageRows(rowsEn)}${customEn}${designEn}
 | \`styles/tokens.css\` | **Design tokens — edit this file first** |
 | \`styles/kit.css\` | Component classes built on the tokens |
+| \`snippets/analytics.html\` | GA4 + PostHog snippets (paste into \`<head>\`) |
+| \`i18n/strings.json\` | Multilingual starter strings (en/ko) |
+| \`llms.txt\` | LLMO — site summary for AI search engines |
+| \`robots.txt\` | SEO crawler rules |
+| \`vercel.json\` / \`netlify.toml\` | One-click deploy configs |
 
-(Only the pages you selected are included.)
+## Quick start
 
-## How to use
+1. Unzip, open \`index.html\` — no build step.
+2. Edit \`styles/tokens.css\`; every page follows.
+3. Replace placeholder copy and legal text, then deploy.
 
-1. Unzip and open \`index.html\` in a browser — no build step needed.
-2. Adjust colors/spacing in \`styles/tokens.css\`; every page follows.
-3. Replace the placeholder copy, ship, or paste the files into your project.
-4. Working with an AI coding agent? Give it \`DESIGN.md\` (exported separately) and these files as the style reference.
+## Wiring guide (the kit ships UI scaffolds — connect services here)
+
+- **Auth & roles**: point the social buttons in \`auth.html\` at your OAuth endpoints (Supabase/Clerk/Firebase). Branch dashboard menus by role after sign-in.
+- **Payments & subscriptions**: link the plan buttons in \`pricing.html\` to Stripe Payment Links — no backend needed to start.
+- **AI chatbot & search**: the chat widget and docs search are static UI. Wire them to your assistant API or a hosted search (Algolia/Typesense).
+- **Email, newsletter & contact**: set each \`<form action="#">\` to Formspree/Buttondown/your API.
+- **Analytics**: copy from \`snippets/analytics.html\` into each page's \`<head>\`, replacing the placeholder IDs.
+- **Deploy (one-click)**: drag the folder into Vercel/Netlify, or \`vercel deploy\` / \`netlify deploy\` — configs included.
+- **i18n**: keys live in \`i18n/strings.json\`; swap per-locale or render with your framework.
+- **SEO & LLMO**: every page has title/description/OG meta. Update \`llms.txt\` and \`robots.txt\` after deploy.
 
 Generated by Azuki (Design Spec Extractor) · ${data.meta.analyzedAt}
-`, `# Azuki 페이지 키트
+`, `# Azuki 런치 키트
 
-**${host}** 디자인 분석으로 생성된 스타터 페이지 키트입니다.
+**${host}** 디자인 분석으로 생성된, 바로 배포 가능한 페이지 키트입니다.
+정적·의존성 0·스크립트 0 — \`index.html\`을 바로 여세요.
 
 ## 구성
 
 | 파일 | 용도 |
 |------|------|
-| \`index.html\` | 랜딩 페이지 (내비·히어로·기능·CTA·푸터) |
-| \`dashboard.html\` | 앱 대시보드 (사이드바·스탯 카드·테이블·폼) |
-| \`components.html\` | 추출된 토큰·컴포넌트 전체 갤러리 |
-| \`pricing.html\` | 가격 페이지 (플랜 + FAQ) |${customRowKo}
+${pageRows(rowsKo)}${customKo}${designKo}
 | \`styles/tokens.css\` | **디자인 토큰 — 가장 먼저 수정할 파일** |
 | \`styles/kit.css\` | 토큰 위에 만든 컴포넌트 클래스 |
+| \`snippets/analytics.html\` | GA4 + PostHog 스니펫 (\`<head>\`에 붙여넣기) |
+| \`i18n/strings.json\` | 다국어 스타터 문자열 (en/ko) |
+| \`llms.txt\` | LLMO — AI 검색엔진용 사이트 요약 |
+| \`robots.txt\` | SEO 크롤러 규칙 |
+| \`vercel.json\` / \`netlify.toml\` | 원클릭 배포 설정 |
 
-(선택한 페이지만 포함됩니다.)
+## 빠른 시작
 
-## 사용법
+1. 압축 해제 후 \`index.html\` 열기 — 빌드 불필요.
+2. \`styles/tokens.css\`만 고치면 모든 페이지에 반영.
+3. 플레이스홀더 문구·법률 문서를 교체하고 배포.
 
-1. 압축 해제 후 \`index.html\`을 브라우저로 열기 — 빌드 불필요.
-2. \`styles/tokens.css\`에서 색·여백만 고치면 모든 페이지에 반영.
-3. 플레이스홀더 문구를 바꿔 그대로 배포하거나 프로젝트에 복사.
-4. AI 코딩 에이전트와 쓸 때는 (별도 내보내는) \`DESIGN.md\`와 이 파일들을 스타일 기준으로 전달.
+## 연결 가이드 (키트는 UI 스캐폴드 — 서비스는 여기서 연결)
+
+- **인증·역할**: \`auth.html\`의 소셜 버튼을 OAuth 엔드포인트(Supabase/Clerk/Firebase)로 연결. 로그인 후 역할별로 대시보드 메뉴 분기.
+- **결제·구독**: \`pricing.html\` 플랜 버튼을 Stripe Payment Links로 — 백엔드 없이 시작 가능.
+- **AI 챗봇·지식 검색**: 챗 위젯과 문서 검색은 정적 UI. 어시스턴트 API나 호스팅 검색(Algolia/Typesense)에 연결.
+- **이메일·뉴스레터·문의**: 각 \`<form action="#">\`을 Formspree/Buttondown/자체 API로.
+- **분석**: \`snippets/analytics.html\` 내용을 각 페이지 \`<head>\`에 복사, 플레이스홀더 ID 교체.
+- **배포(원클릭)**: 폴더를 Vercel/Netlify에 드래그하거나 \`vercel deploy\` / \`netlify deploy\` — 설정 파일 포함.
+- **다국어**: \`i18n/strings.json\`의 키를 로케일별로 교체하거나 프레임워크로 렌더.
+- **SEO·LLMO**: 전 페이지에 title/description/OG 메타 포함. 배포 후 \`llms.txt\`·\`robots.txt\` 갱신.
 
 Azuki (Design Spec Extractor) 생성 · ${data.meta.analyzedAt}
 `);
@@ -416,24 +718,40 @@ Azuki (Design Spec Extractor) 생성 · ${data.meta.analyzedAt}
 
 /* ---------- 공개 API ---------- */
 // 파일 목록 생성. [{ name, content }]
-// kitOpts: { brand, headline, sub, cta, pages: ['landing','dashboard','components','pricing'], customPage: {name, content} }
+// kitOpts: { brand, headline, sub, cta, pages: [...KIT_PAGES], customPage: {name, content}, designMd: string }
+export const KIT_PAGES = ['landing', 'auth', 'dashboard', 'pricing', 'blog', 'docs', 'legal', 'contact', 'components'];
+
 export function exportKit(data, lang, kitOpts) {
   state.LANG = lang === 'ko' ? 'ko' : 'en';
   const o = kitOpts || {};
-  const pages = (o.pages && o.pages.length ? o.pages : ['landing', 'dashboard', 'components', 'pricing'])
-    .filter((p) => ['landing', 'dashboard', 'components', 'pricing'].includes(p));
+  const pages = (o.pages && o.pages.length ? o.pages : KIT_PAGES).filter((p) => KIT_PAGES.includes(p));
   const tokens = buildColorTokens(data);
   const brand = String(o.brand || (data.meta.title || 'My Site').split(/[—|·:-]/)[0].trim()).slice(0, 40) || 'My Site';
   const ko = { headline: o.headline ? String(o.headline).slice(0, 90) : '', sub: o.sub ? String(o.sub).slice(0, 260) : '', cta: o.cta ? String(o.cta).slice(0, 30) : '' };
-  const files = [];
-  if (pages.includes('landing')) files.push({ name: 'index.html', content: page(brand, landingHtml(data, brand, pages, ko)) });
-  if (pages.includes('dashboard')) files.push({ name: 'dashboard.html', content: page(`${brand} — ${T('Dashboard', '대시보드')}`, dashboardHtml(data, brand, pages)) });
-  if (pages.includes('components')) files.push({ name: 'components.html', content: page(`${brand} — ${T('Components', '컴포넌트')}`, componentsHtml(data, tokens, brand, pages)) });
-  if (pages.includes('pricing')) files.push({ name: 'pricing.html', content: page(`${brand} — ${T('Pricing', '가격')}`, pricingHtml(data, brand, pages)) });
+  const host = (() => { try { return new URL(data.meta.url).host; } catch (e) { return data.meta.url || ''; } })();
+  const builders = {
+    landing: () => ({ name: 'index.html', content: page(brand, landingHtml(data, brand, pages, ko), ko.sub) }),
+    auth: () => ({ name: 'auth.html', content: page(`${brand} — ${T('Sign in', '로그인')}`, authHtml(data, brand, pages)) }),
+    dashboard: () => ({ name: 'dashboard.html', content: page(`${brand} — ${T('Dashboard', '대시보드')}`, dashboardHtml(data, brand, pages)) }),
+    pricing: () => ({ name: 'pricing.html', content: page(`${brand} — ${T('Pricing', '가격')}`, pricingHtml(data, brand, pages)) }),
+    blog: () => ({ name: 'blog.html', content: page(`${brand} — ${T('Blog', '블로그')}`, blogHtml(data, brand, pages)) }),
+    docs: () => ({ name: 'docs.html', content: page(`${brand} — ${T('Docs', '문서')}`, docsHtml(data, brand, pages)) }),
+    legal: () => ({ name: 'legal.html', content: page(`${brand} — ${T('Legal', '법률 고지')}`, legalHtml(data, brand, pages)) }),
+    contact: () => ({ name: 'contact.html', content: page(`${brand} — ${T('Contact', '문의')}`, contactHtml(data, brand, pages)) }),
+    components: () => ({ name: 'components.html', content: page(`${brand} — ${T('Components', '컴포넌트')}`, componentsHtml(data, tokens, brand, pages)) }),
+  };
+  const files = pages.map((p) => builders[p]());
   if (o.customPage && o.customPage.content) files.push({ name: 'custom.html', content: o.customPage.content });
+  if (o.designMd) files.push({ name: 'DESIGN.md', content: String(o.designMd) });
   files.push({ name: 'styles/tokens.css', content: exportTokens(data, lang).css });
   files.push({ name: 'styles/kit.css', content: buildKitCss(data, tokens) });
-  files.push({ name: 'README.md', content: readmeMd(data, !!(o.customPage && o.customPage.content)) });
+  files.push({ name: 'snippets/analytics.html', content: analyticsSnippetHtml() });
+  files.push({ name: 'i18n/strings.json', content: i18nStringsJson(brand) });
+  files.push({ name: 'llms.txt', content: llmsTxt(brand, host, pages) });
+  files.push({ name: 'robots.txt', content: robotsTxt() });
+  files.push({ name: 'vercel.json', content: vercelJson() });
+  files.push({ name: 'netlify.toml', content: netlifyToml() });
+  files.push({ name: 'README.md', content: readmeMd(data, pages, !!(o.customPage && o.customPage.content), !!o.designMd) });
   return files;
 }
 
@@ -447,7 +765,7 @@ export function buildCustomKitPage(data, structure, lang) {
   const pages = ['landing', 'dashboard', 'components', 'pricing'];
   const bodyHtml = `${navHtml(brand, pages, null)}
 ${renderSections(st.sections)}
-${footerHtml(brand)}`;
+${footerHtml(brand, pages)}`;
   return page(String(st.title || brand).slice(0, 60), bodyHtml);
 }
 

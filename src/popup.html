@@ -16,6 +16,8 @@
       </div>
       <button id="open-settings" data-i18n-title="settings" title="설정" aria-label="설정">⚙</button>
     </div>
+    <!-- ① 페이지 분석 -->
+    <div class="step-title"><span class="step-n">1</span><span data-i18n="sectionAnalyze">페이지 분석</span></div>
     <div class="actions" style="margin-top: 0">
       <button id="analyze" data-i18n="analyze">이 페이지 분석하기</button>
       <button id="add" data-i18n="add" style="display: none">＋ 페이지 추가</button>
@@ -37,38 +39,42 @@
       </div>
       <div class="actions">
         <button id="copy-agent" data-i18n="agentCopy">에이전트 프롬프트</button>
-      </div>
-      <div class="kit-panel">
-        <div class="kit-title" data-i18n="kitTitle">페이지 키트</div>
-        <input id="kit-brand" class="kit-field" type="text" data-i18n-placeholder="kitBrand" placeholder="브랜드명 (비우면 자동)" maxlength="40" />
-        <input id="kit-headline" class="kit-field" type="text" data-i18n-placeholder="kitHeadline" placeholder="헤드라인 (선택)" maxlength="90" />
-        <input id="kit-cta" class="kit-field" type="text" data-i18n-placeholder="kitCta" placeholder="CTA 버튼 문구 (선택)" maxlength="30" />
-        <div class="kit-pages">
-          <label><input type="checkbox" id="kit-p-landing" checked /><span data-i18n="kitLanding">랜딩</span></label>
-          <label><input type="checkbox" id="kit-p-dashboard" checked /><span data-i18n="kitDashboard">대시보드</span></label>
-          <label><input type="checkbox" id="kit-p-components" checked /><span data-i18n="kitComponents">갤러리</span></label>
-          <label><input type="checkbox" id="kit-p-pricing" checked /><span data-i18n="kitPricing">가격</span></label>
-        </div>
-        <div id="ai-kit" style="display: none">
-          <textarea id="ai-prompt" class="kit-field" rows="2" data-i18n-placeholder="aiPrompt" placeholder="예: 요가 스튜디오 예약 페이지 — 수업 소개와 가격표 포함" maxlength="500"></textarea>
-          <button id="ai-generate" data-i18n="aiGenerate">AI 맞춤 페이지 생성</button>
-        </div>
-        <div class="actions" style="margin-top: 8px">
-          <button id="download-kit" data-i18n="kit">페이지 키트 (.zip)</button>
-        </div>
+        <button id="open-preview" data-i18n="openPreview">미리보기 열기</button>
       </div>
       <div class="actions">
         <button id="download-css">tokens.css</button>
         <button id="download-json">tokens.json</button>
         <button id="download-tw">tailwind</button>
-      </div>
-      <div class="actions">
-        <button id="download-html">preview.html</button>
-        <button id="download-shot">screenshot</button>
-      </div>
-      <div class="actions">
         <button id="download-passport" data-i18n="passport">디자인 여권</button>
-        <button id="open-preview" data-i18n="openPreview">미리보기 열기</button>
+      </div>
+    </div>
+
+    <!-- ② 페이지 키트 (분석 완료 후 활성화) -->
+    <div class="step-title"><span class="step-n">2</span><span data-i18n="sectionKit">페이지 키트</span></div>
+    <div class="kit-panel" id="kit-panel" aria-disabled="true">
+      <div class="kit-sub" data-i18n="kitHint">이 사이트의 디자인으로 만든, 배포 준비된 샘플 웹페이지 묶음을 받아요 — 빌드 없이 바로 열립니다.</div>
+      <div class="kit-sub kit-locked" id="kit-locked" data-i18n="kitLocked">먼저 위에서 페이지를 분석하세요 — 완료되면 여기가 열려요.</div>
+      <input id="kit-brand" class="kit-field" type="text" data-i18n-placeholder="kitBrand" placeholder="사이트/서비스 이름 (비우면 페이지 제목 사용)" maxlength="40" />
+      <input id="kit-headline" class="kit-field" type="text" data-i18n-placeholder="kitHeadline" placeholder="첫 화면에 크게 보일 제목 (선택)" maxlength="90" />
+      <input id="kit-cta" class="kit-field" type="text" data-i18n-placeholder="kitCta" placeholder="주요 버튼에 넣을 문구 (선택, 예: 무료로 시작)" maxlength="30" />
+      <div class="kit-pages">
+        <label><input type="checkbox" id="kit-p-landing" checked /><span data-i18n="kitLanding">랜딩</span></label>
+        <label><input type="checkbox" id="kit-p-auth" checked /><span data-i18n="kitAuth">로그인</span></label>
+        <label><input type="checkbox" id="kit-p-dashboard" checked /><span data-i18n="kitDashboard">대시보드</span></label>
+        <label><input type="checkbox" id="kit-p-pricing" checked /><span data-i18n="kitPricing">가격</span></label>
+        <label><input type="checkbox" id="kit-p-blog" checked /><span data-i18n="kitBlog">블로그</span></label>
+        <label><input type="checkbox" id="kit-p-docs" checked /><span data-i18n="kitDocs">문서</span></label>
+        <label><input type="checkbox" id="kit-p-legal" checked /><span data-i18n="kitLegal">법률</span></label>
+        <label><input type="checkbox" id="kit-p-contact" checked /><span data-i18n="kitContact">문의</span></label>
+        <label><input type="checkbox" id="kit-p-components" checked /><span data-i18n="kitComponents">갤러리</span></label>
+      </div>
+      <div class="kit-sub" data-i18n="kitIncludes">모든 키트에 포함: DESIGN.md · 분석 스니펫(GA4+PostHog) · 다국어 문자열 · llms.txt/robots.txt · 배포 설정(Vercel/Netlify)</div>
+      <div id="ai-kit" style="display: none">
+        <textarea id="ai-prompt" class="kit-field" rows="2" data-i18n-placeholder="aiPrompt" placeholder="원하는 페이지를 설명하세요 — 예: 카페 소개 페이지, 메뉴·가격·자주 묻는 질문 포함" maxlength="500"></textarea>
+        <button id="ai-generate" data-i18n="aiGenerate">AI 맞춤 페이지 생성</button>
+      </div>
+      <div class="actions" style="margin-top: 8px">
+        <button id="download-kit" data-i18n="kit">페이지 키트 (.zip)</button>
       </div>
     </div>
     <script type="module" src="popup.js"></script>

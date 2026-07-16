@@ -241,17 +241,57 @@ button {
   overflow: auto;
   resize: none;
 }
-/* 페이지 키트 패널: 잉크 프레임 컷 안에 맞춤 옵션 */
+/* 스텝 타이틀: ① 페이지 분석 / ② 페이지 키트 — 두 구역을 시각적으로 분리 */
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.step-title:first-of-type {
+  margin-top: 0;
+}
+.step-title .step-n {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--azuki-ink);
+  color: var(--azuki-cream);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.step-title::after {
+  content: "";
+  flex: 1;
+  border-top: 1.5px solid var(--azuki-ink);
+}
+/* 페이지 키트 패널: 잉크 프레임 컷 안에 맞춤 옵션. 분석 전엔 잠금 */
 .kit-panel {
-  margin-top: 12px;
   padding: 11px 12px;
   background: var(--azuki-paper);
   border: var(--azuki-frame);
   border-radius: var(--radius-panel);
 }
-.kit-title {
-  font-size: 12px;
-  font-weight: 700;
+.kit-panel[aria-disabled="true"] > *:not(.kit-locked):not(.kit-sub) {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.kit-panel .kit-locked {
+  display: none;
+}
+.kit-panel[aria-disabled="true"] .kit-locked {
+  display: block;
+  color: var(--azuki-blue-deep);
+  font-weight: 600;
+}
+.kit-sub {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--azuki-ink-mute);
   margin-bottom: 8px;
 }
 .kit-field {

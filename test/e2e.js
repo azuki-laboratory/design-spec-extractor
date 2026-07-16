@@ -174,8 +174,11 @@ async function main() {
     fs.writeFileSync(path.join(__dirname, 'output-preview.html'), pv);
 
     // UI: 새 버튼 존재
-    check('preview.html 다운로드 버튼', await popup.isVisible('#download-html'));
-    check('screenshot 다운로드 버튼', await popup.isVisible('#download-shot'));
+    // preview/screenshot 다운로드 버튼은 제거됨 — preview는 '미리보기 열기'로만 사용
+    check('preview.html 다운로드 버튼 없음', !(await popup.isVisible('#download-html').catch(() => false)));
+    check('screenshot 버튼 없음', !(await popup.isVisible('#download-shot').catch(() => false)));
+    check('분석/키트 스텝 구분 표시', (await popup.locator('.step-title').count()) === 2);
+    check('키트 구역 잠금 해제 (분석 후)', (await popup.getAttribute('#kit-panel', 'aria-disabled')) === 'false');
     check('페이지 추가 버튼 표시', await popup.isVisible('#add'));
 
     // 멀티 페이지 병합: 다른 URL(같은 픽스처)을 추가 분석
@@ -239,7 +242,17 @@ async function main() {
     // Azuki 시그니처: 페이지 키트 (스타터 템플릿 zip)
     const kitFiles = await popup.evaluate(() => window.__kitFiles);
     const kitByName = Object.fromEntries((kitFiles || []).map((f) => [f.name, f.content]));
-    check('페이지 키트 파일 7종', (kitFiles || []).length === 7 && !!kitByName['index.html'] && !!kitByName['dashboard.html'] && !!kitByName['components.html'] && !!kitByName['pricing.html'] && !!kitByName['styles/tokens.css'] && !!kitByName['styles/kit.css'] && !!kitByName['README.md']);
+    const KIT_EXPECT = ['index.html', 'auth.html', 'dashboard.html', 'pricing.html', 'blog.html', 'docs.html', 'legal.html', 'contact.html', 'components.html',
+      'DESIGN.md', 'styles/tokens.css', 'styles/kit.css', 'snippets/analytics.html', 'i18n/strings.json', 'llms.txt', 'robots.txt', 'vercel.json', 'netlify.toml', 'README.md'];
+    check('런치 키트 파일 19종', (kitFiles || []).length === KIT_EXPECT.length && KIT_EXPECT.every((n) => !!kitByName[n]));
+    check('키트 DESIGN.md 동봉', (kitByName['DESIGN.md'] || '').includes('#e11d48'));
+    check('키트 인증 페이지 (소셜 로그인)', (kitByName['auth.html'] || '').includes('social-btn') && (kitByName['auth.html'] || '').includes('Google'));
+    check('키트 챗봇 위젯 (랜딩, CSS 전용)', (kitByName['index.html'] || '').includes('chat-fab') && !(kitByName['index.html'] || '').toLowerCase().includes('<script'));
+    check('키트 SEO 메타 + LLMO', (kitByName['index.html'] || '').includes('og:title') && (kitByName['llms.txt'] || '').length > 0);
+    check('키트 분석 스니펫 (GA4+PostHog)', (kitByName['snippets/analytics.html'] || '').includes('googletagmanager') && (kitByName['snippets/analytics.html'] || '').includes('posthog'));
+    check('키트 다국어 문자열', (() => { try { const j = JSON.parse(kitByName['i18n/strings.json']); return !!j.en && !!j.ko; } catch (e) { return false; } })());
+    check('키트 배포 설정', (kitByName['vercel.json'] || '').includes('cleanUrls') && (kitByName['netlify.toml'] || '').includes('publish'));
+    check('키트 법률·문의 페이지', (kitByName['legal.html'] || '').includes('id="privacy"') && (kitByName['contact.html'] || '').includes('<form'));
     check('키트 랜딩에 토큰 참조', (kitByName['styles/kit.css'] || '').includes('var(--color-'));
     check('키트에 Primary 반영', (kitByName['styles/kit.css'] || '').toLowerCase().includes('#e11d48') || (kitByName['styles/tokens.css'] || '').includes('--color-primary: #e11d48'));
     check('키트 갤러리에 스와치', (kitByName['components.html'] || '').includes('--color-canvas'));
@@ -256,7 +269,7 @@ async function main() {
       const files = window.DesignGenerator.exportKit(window.__analysisData, 'ko', { brand: '테스트브랜드', cta: '구매하기', headline: '나만의 헤드라인', pages: ['landing'] });
       return { names: files.map((f) => f.name), index: files.find((f) => f.name === 'index.html')?.content || '' };
     });
-    check('맞춤 키트 페이지 선택 (landing만)', customKit.names.length === 4 && !customKit.names.includes('dashboard.html') && !customKit.names.includes('pricing.html'));
+    check('맞춤 키트 페이지 선택 (landing만)', customKit.names.includes('index.html') && !customKit.names.includes('dashboard.html') && !customKit.names.includes('pricing.html') && !customKit.names.includes('auth.html'));
     check('맞춤 키트 브랜드·문구 반영', customKit.index.includes('테스트브랜드') && customKit.index.includes('구매하기') && customKit.index.includes('나만의 헤드라인'));
 
     // AI 맞춤 페이지: 구조 JSON → 렌더 (결정적 검증 — LLM 호출 없음)
@@ -270,8 +283,11 @@ async function main() {
     check('AI 프롬프트 UI 기본 숨김 (미지원 환경)', !(await popup.isVisible('#ai-kit')));
     // 산출물 덤프 (육안 확인용)
     const kitDir = path.join(__dirname, 'output-kit');
-    fs.mkdirSync(path.join(kitDir, 'styles'), { recursive: true });
-    (kitFiles || []).forEach((f) => fs.writeFileSync(path.join(kitDir, f.name), f.content));
+    (kitFiles || []).forEach((f) => {
+      const p = path.join(kitDir, f.name);
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, f.content);
+    });
 
     // 분석 고도화: 테두리 두께 / 불투명도 / 모션 / 접근성 / 아이콘 (섹션 6·11)
     check('테두리 두께 추출', /테두리 두께.*1px/.test(md));
