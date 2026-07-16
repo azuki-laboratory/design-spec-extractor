@@ -279,34 +279,69 @@ async function initAiKit() {
 }
 initAiKit();
 
+// AI 진행 상태 표시 — 스피너 + 단계 메시지. state: 'busy' | 'ok' | 'error' | 'hide'
+function setAiStatus(state, msg) {
+  const el = $('ai-status');
+  el.className = 'ai-status' + (state === 'hide' ? '' : ` ${state}`);
+  el.style.display = state === 'hide' ? 'none' : 'flex';
+  $('ai-status-text').textContent = msg || '';
+}
+
 $('ai-generate').addEventListener('click', async () => {
   if (!lastData) return;
   const promptText = $('ai-prompt').value.trim();
   if (!promptText) return;
-  const status = $('status');
   const btn = $('ai-generate');
   btn.disabled = true;
-  status.className = '';
-  status.textContent = t().aiWorking;
+  const btnLabel = btn.textContent;
+  btn.textContent = t().aiBtnBusy;
+  // 경과 시간 표시 — 오래 걸려도 "진행 중"임을 계속 알린다
+  const started = Date.now();
+  let phase = t().aiWorking;
+  setAiStatus('busy', phase);
+  const tick = setInterval(() => {
+    setAiStatus('busy', `${phase} (${Math.round((Date.now() - started) / 1000)}s)`);
+  }, 1000);
   try {
-    // 모델 미다운로드 상태면 create()가 다운로드를 트리거 — 진행 안내
+    // 모델 미다운로드 상태면 create()가 다운로드를 트리거 — monitor로 진행률 % 표시
     const avail = await LanguageModel.availability();
-    if (avail === 'downloadable' || avail === 'downloading') status.textContent = t().aiDownloading;
+    if (avail === 'downloadable' || avail === 'downloading') phase = t().aiDownloading;
     const session = await LanguageModel.create({
       initialPrompts: [{ role: 'system', content: DesignGenerator.customKitSystemPrompt(opts.lang) }],
+      monitor(m) {
+        m.addEventListener('downloadprogress', (e) => {
+          const pct = Math.round(((e.loaded || 0) / (e.total || 1)) * 100);
+          phase = t().aiDownloadPct(pct);
+        });
+      },
     });
-    const raw = await session.prompt(promptText);
+    phase = t().aiWorking;
+    // 스트리밍 수신 — 응답이 흘러오는 동안 수신 글자 수로 "살아있음"을 보여준다
+    let raw = '';
+    if (session.promptStreaming) {
+      const stream = session.promptStreaming(promptText);
+      for await (const chunk of stream) {
+        raw += chunk;
+        phase = t().aiReceiving(raw.length);
+      }
+    } else {
+      raw = await session.prompt(promptText);
+    }
     session.destroy();
     const structure = DesignGenerator.parseKitStructure(raw);
     if (!structure) throw new Error(t().aiFail);
     // LLM은 구조 JSON까지만 — HTML 렌더는 내부 템플릿(전 값 이스케이프)이 수행
     customPage = { name: 'custom.html', content: DesignGenerator.buildCustomKitPage(lastData, structure, opts.lang) };
-    status.textContent = t().aiDone;
+    clearInterval(tick);
+    setAiStatus('ok', t().aiDone);
   } catch (e) {
-    status.className = 'error';
-    status.textContent = (e && e.message) || t().aiFail;
+    clearInterval(tick);
+    customPage = null;
+    setAiStatus('error', `${(e && e.message) || t().aiFail} — ${t().aiRetry}`);
   } finally {
+    clearInterval(tick);
     btn.disabled = false;
+    btn.textContent = btnLabel;
   }
 });
 

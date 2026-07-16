@@ -72,6 +72,11 @@
       <div id="ai-kit" style="display: none">
         <textarea id="ai-prompt" class="kit-field" rows="2" data-i18n-placeholder="aiPrompt" placeholder="원하는 페이지를 설명하세요 — 예: 카페 소개 페이지, 메뉴·가격·자주 묻는 질문 포함" maxlength="500"></textarea>
         <button id="ai-generate" data-i18n="aiGenerate">AI 맞춤 페이지 생성</button>
+        <div id="ai-status" class="ai-status" style="display: none" role="status" aria-live="polite">
+          <span class="ai-spinner" aria-hidden="true"></span>
+          <span class="ai-mark" aria-hidden="true"></span>
+          <span id="ai-status-text"></span>
+        </div>
       </div>
       <div class="actions" style="margin-top: 8px">
         <button id="download-kit" data-i18n="kit">페이지 키트 (.zip)</button>
